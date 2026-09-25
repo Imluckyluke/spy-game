@@ -82,6 +82,10 @@
       <div class="role-badge" id="roleBadge">بازیکن ۱</div>
       <div class="role-secret" id="roleSecret">کلمه</div>
       <div class="role-kicker" id="roleKicker">این کلمه را به کسی نگو</div>
+      <div class="hint-box" id="roleHintBox" hidden>
+        <span class="hint-label">راهنمای تو</span>
+        <div class="hint-word" id="roleHintWord">—</div>
+      </div>
       <p class="role-help" id="roleHelp"></p>
       <button class="btn primary big" id="hideBtn">پنهان کن و نفر بعدی</button>
       <button class="btn ghost" id="cancelPeekBtn">برگشت</button>
@@ -101,6 +105,7 @@
         </svg>
         <div class="timer-num" id="timerNum">۶۰</div>
       </div>
+      <p class="note" id="playNote"></p>
 
       <div class="seats" id="seatsPlay"></div>
       <div class="row">
@@ -194,6 +199,10 @@
       <div class="role-badge" id="netRoleBadge">شما</div>
       <div class="role-secret" id="netRoleSecret">کلمه</div>
       <div class="role-kicker" id="netRoleKicker"></div>
+      <div class="hint-box" id="netHintBox" hidden>
+        <span class="hint-label">راهنمای تو</span>
+        <div class="hint-word" id="netHintWord">—</div>
+      </div>
       <p class="role-help" id="netRoleHelp"></p>
       <p class="role-help warn" id="netWarn">⚠️ صفحه را نبندید؛ نقش شما جایی ذخیره نمی‌شود.</p>
       <button class="btn primary big" id="netHideBtn">پنهان کن</button>
@@ -213,6 +222,7 @@
         </svg>
         <div class="timer-num" id="netTimerNum">۶۰</div>
       </div>
+      <p class="note" id="netPlayNote"></p>
 
       <div class="seats" id="netSeats"></div>
       <div class="row" id="netHostControls">

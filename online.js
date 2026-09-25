@@ -23,6 +23,7 @@ const N = {
   spies: 1,
   seconds: 60,
   endsAt: 0,
+  timeUp: false,
   word: null,
   spyIdx: [],
   role: null,
@@ -253,6 +254,7 @@ function syncHostState() {
     spies: N.spies,
     seconds: N.seconds,
     endsAt: N.endsAt,
+    timeUp: N.timeUp,
   };
   if (N.phase === "reveal" && N.word) {
     msg.word = N.word.w;
@@ -366,6 +368,7 @@ function onGuestMessage(topic, msg) {
     N.spies = data.spies;
     N.seconds = data.seconds;
     N.endsAt = data.endsAt || 0;
+    N.timeUp = !!data.timeUp;
 
     if (data.phase === "reveal" && data.word) {
       N.word = { w: data.word, h: data.hint };
@@ -410,6 +413,7 @@ function netStart() {
   N.spyIdx = shuffleArray(Array.from({ length: N.players.length }, (_, i) => i)).slice(0, count);
   N.phase = "role";
   N.endsAt = 0;
+  N.timeUp = false;
 
   N.players.forEach((p) => sendWelcome(p, giveRole(p.i)));
   const me = N.players[0];
@@ -422,6 +426,7 @@ function netStartTalk() {
   if (!N.isHost) return;
   if (!N.endsAt) {
     N.endsAt = Date.now() + N.seconds * 1000;
+    N.timeUp = false;
     N.phase = "play";
     syncHostState();
     openNetPlay();
@@ -432,8 +437,14 @@ function netStartTalk() {
 
 function netShift(delta) {
   if (!N.isHost) return;
-  if (!N.endsAt) return;
-  N.endsAt = Math.max(Date.now() + 3000, N.endsAt + delta * 1000);
+  if (N.timeUp) {
+    if (delta <= 0) return;
+    N.timeUp = false;
+    N.endsAt = Date.now() + delta * 1000;
+  } else {
+    if (!N.endsAt) return;
+    N.endsAt = Math.max(Date.now() + 3000, N.endsAt + delta * 1000);
+  }
   syncHostState();
   renderNetPlay();
 }
@@ -454,6 +465,7 @@ function netAgain() {
   N.spyIdx = [];
   N.role = null;
   N.endsAt = 0;
+  N.timeUp = false;
   stopNetTick();
   syncHostState();
   openLobby("میزبان");
@@ -529,12 +541,9 @@ function renderNetChips() {
   $n("netSpyChips").innerHTML = [1, 2, 3]
     .map((n) => `<button type="button" class="chip ${n === N.spies ? "on" : ""}" data-nspies="${n}">${window.SPY_FA(n)} جاسوس</button>`)
     .join("");
-  $n("netTimeChips").innerHTML = [30, 60, 90, 120]
-    .map((s) => {
-      const label = s < 60 ? `${window.SPY_FA(s)} ثانیه` : s === 60 ? "۱ دقیقه" : s === 90 ? "۱٫۵ دقیقه" : "۲ دقیقه";
-      return `<button type="button" class="chip ${s === N.seconds ? "on" : ""}" data-nseconds="${s}">${label}</button>`;
-    })
-    .join("");
+  $n("netTimeChips").innerHTML = window.SPY_TIMES.map(
+    (s) => `<button type="button" class="chip ${s === N.seconds ? "on" : ""}" data-nseconds="${s}">${window.SPY_TIME_LABEL(s)}</button>`
+  ).join("");
 }
 
 function renderNetRole() {
@@ -546,8 +555,10 @@ function renderNetRole() {
   $n("netRoleSecret").textContent = isSpy ? "تو جاسوسی!" : r.word || "—";
   $n("netRoleSecret").classList.toggle("spy-word", isSpy);
   $n("netRoleKicker").textContent = isSpy ? "این راهنما فقط مال توست" : "این کلمه را به کسی نگو";
+  $n("netHintBox").hidden = !isSpy;
+  $n("netHintWord").textContent = isSpy ? r.hint : "";
   $n("netRoleHelp").textContent = isSpy
-    ? `راهنما: «${r.hint}» — کلمهٔ اصلی «${r.word}» است. وانمود کن خبر نداری.`
+    ? "کلمهٔ اصلی را تو هم نمی‌دانی. وانمود کن خبر نداری و بگذار بقیه به تو شک کنند!"
     : "تو جاسوس نیستی. با توضیح زیاد کلمه را لو نده!";
   window.showScreen("netrole");
 }
@@ -557,9 +568,10 @@ function openNetPlay() {
   $n("netPlayHint").textContent = N.isHost
     ? "شما میزبانید؛ گفت‌وگو را شروع کنید."
     : "حرف بزنید و صف‌بندی کنید؛ جاسوس نباید لو برود.";
-  $n("netTimerNum").textContent = window.SPY_FA(N.seconds);
   $n("netRingFg").style.strokeDashoffset = 0;
   $n("netTimerNum").parentElement.classList.remove("hurry");
+  $n("netPlayNote").textContent = "";
+  $n("netMinusBtn").disabled = true;
   $n("netTalkBtn").textContent = N.endsAt ? "پایان و افشا" : "شروع گفت‌وگو";
   window.showScreen("netplay");
   startNetTick();
@@ -570,15 +582,31 @@ function startNetTick() {
   N.tickId = setInterval(() => {
     if (N.phase !== "play") return;
     const total = N.seconds * 1000;
-    const left = N.endsAt ? Math.max(0, N.endsAt - Date.now()) : 0;
-    $n("netTimerNum").textContent = window.SPY_FA(N.endsAt ? Math.ceil(left / 1000) : N.seconds);
+    const left = N.timeUp ? 0 : N.endsAt ? Math.max(0, N.endsAt - Date.now()) : total;
+    $n("netTimerNum").textContent = window.SPY_FA(Math.ceil(left / 1000));
     $n("netRingFg").style.strokeDashoffset = NET_RING * (1 - Math.min(1, left / total));
     $n("netTimerNum").parentElement.classList.toggle("hurry", left > 0 && left <= 10000);
+
     if (N.isHost) {
       $n("netTalkBtn").textContent = "پایان و افشا";
-      if (N.endsAt && left <= 0) netReveal();
+      $n("netMinusBtn").disabled = !N.endsAt || N.timeUp;
+      if (N.endsAt && !N.timeUp && left <= 0) {
+        N.timeUp = true;
+        setNetNote("⏱ زمان تمام شد — تا وقتی «پایان و افشا» را نزنید، کلمه دیده نمی‌شود.");
+        $n("netMinusBtn").disabled = true;
+        $n("netTimerNum").parentElement.classList.remove("hurry");
+        if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+        syncHostState();
+      }
+    } else if (N.timeUp) {
+      setNetNote("⏱ زمان تمام شد — منتظر دکمهٔ میزبان برای افشای کلمه…");
+      $n("netTimerNum").parentElement.classList.remove("hurry");
     }
   }, 250);
+}
+
+function setNetNote(text) {
+  if ($n("netPlayNote").textContent !== text) $n("netPlayNote").textContent = text;
 }
 
 function stopNetTick() {

@@ -14,15 +14,20 @@ const shuffle = (arr) => {
 const state = {
   players: 6,
   spies: 1,
-  seconds: 60,
+  seconds: 120,
   word: null,
   spySet: new Set(),
   seen: new Set(),
   turn: 0,
-  timeLeft: 60,
+  timeLeft: 120,
+  timeUp: false,
   timerId: null,
   wakeLock: null,
 };
+
+const TIMES = [30, 60, 90, 120, 180, 240, 300];
+const timeLabel = (s) =>
+  s < 60 ? `${fa(s)} ثانیه` : s % 60 === 0 ? `${fa(s / 60)} دقیقه` : `${fa(s / 60)}٫${fa((s % 60) / 10)} دقیقه`;
 
 const screens = {
   home: $("screen-home"),
@@ -84,13 +89,9 @@ function renderSpyChips() {
 }
 
 function renderTimeChips() {
-  const opts = [30, 60, 90, 120];
-  $("timeChips").innerHTML = opts
-    .map((s) => {
-      const label = s < 60 ? `${fa(s)} ثانیه` : s === 60 ? "۱ دقیقه" : s === 90 ? "۱٫۵ دقیقه" : "۲ دقیقه";
-      return `<button type="button" class="chip ${s === state.seconds ? "on" : ""}" data-seconds="${s}">${label}</button>`;
-    })
-    .join("");
+  $("timeChips").innerHTML = TIMES.map(
+    (s) => `<button type="button" class="chip ${s === state.seconds ? "on" : ""}" data-seconds="${s}">${timeLabel(s)}</button>`
+  ).join("");
 }
 
 function saveSettings() {
@@ -109,7 +110,7 @@ function loadSettings() {
     if (!raw) return;
     const s = JSON.parse(raw);
     if (s.players >= 3 && s.players <= 16) state.players = s.players;
-    if ([30, 60, 90, 120].includes(s.seconds)) state.seconds = s.seconds;
+    if (TIMES.includes(s.seconds)) state.seconds = s.seconds;
     if (s.spies >= 1) state.spies = s.spies;
   } catch (e) { /* تنظیمات خراب، پیش‌فرض */ }
 }
@@ -195,8 +196,10 @@ $("peekBtn").addEventListener("click", () => {
   secret.textContent = isSpy ? "تو جاسوسی!" : state.word.w;
 
   $("roleKicker").textContent = isSpy ? "این راهنما فقط مال توست" : "این کلمه را به کسی نگو";
+  $("roleHintBox").hidden = !isSpy;
+  $("roleHintWord").textContent = isSpy ? state.word.h : "";
   $("roleHelp").textContent = isSpy
-    ? `راهنما: «${state.word.h}» — کلمهٔ اصلی «${state.word.w}» است. تو نباید بگویی کلمه چیست؛ وانمود کن خبر نداری و بگذار بقیه به تو شک کنند!`
+    ? "کلمهٔ اصلی را تو هم نمی‌دانی. وانمود کن خبر نداری و بگذار بقیه به تو شک کنند!"
     : "تو جاسوس نیستی. با توضیح‌هایت کلمه را لو نده و بگذار جاسوس خودش را نشان بدهد.";
 
   $("hideBtn").textContent = isSpy
@@ -229,7 +232,10 @@ const RING = 2 * Math.PI * 52;
 
 function startTalk() {
   state.timeLeft = state.seconds;
+  state.timeUp = false;
   $("timerNum").textContent = fa(state.seconds);
+  $("playNote").textContent = "";
+  $("minus30Btn").disabled = false;
   const ring = $("ringFg");
   ring.style.strokeDasharray = RING;
   ring.style.strokeDashoffset = 0;
@@ -243,9 +249,16 @@ function startTalk() {
 
 function tick() {
   state.timeLeft -= 1;
-  if (state.timeLeft < 0) {
+  if (state.timeLeft <= 0) {
+    state.timeLeft = 0;
+    state.timeUp = true;
     stopTimer();
-    reveal();
+    $("timerNum").textContent = "۰";
+    $("ringFg").style.strokeDashoffset = RING;
+    $("playNote").textContent = "⏱ زمان تمام شد — تا وقتی «پایان و افشا» را نزنید، کلمه دیده نمی‌شود.";
+    $("minus30Btn").disabled = true;
+    $("screen-play").querySelector(".timer-wrap").classList.remove("hurry");
+    buzz([80, 60, 80]);
     return;
   }
   $("timerNum").textContent = fa(state.timeLeft);
@@ -262,6 +275,13 @@ function stopTimer() {
 
 function addTime(delta) {
   state.timeLeft = Math.max(0, state.timeLeft + delta);
+  if (state.timeUp && state.timeLeft > 0) {
+    state.timeUp = false;
+    $("playNote").textContent = "";
+    $("minus30Btn").disabled = false;
+    stopTimer();
+    state.timerId = setInterval(tick, 1000);
+  }
   $("timerNum").textContent = fa(state.timeLeft);
   $("ringFg").style.strokeDashoffset = RING * (1 - state.timeLeft / state.seconds);
   buzz(10);
@@ -335,3 +355,6 @@ $("wordCount").textContent = `${fa(WORDS.length)} کلمهٔ فارسی`;
 
 window.SPY_FA = fa;
 window.showScreen = show;
+window.SPY_TIMES = TIMES;
+window.SPY_TIME_LABEL = timeLabel;
+window.SPY_DEBUG = { state, tick };
