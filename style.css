@@ -17,7 +17,9 @@
 
 * { box-sizing: border-box; }
 
-html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; }
+
+html, body { min-height: 100%; }
 
 body {
   margin: 0;
@@ -27,15 +29,18 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 20px 14px 28px;
+  justify-content: flex-start;
+  min-height: 100vh;
+  min-height: 100dvh;
+  gap: 12px;
+  padding: max(14px, env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-#app { width: 100%; max-width: 440px; }
+/* روی گوشی محتوا بالا نمی‌پرد و اگر بلند بود، بریده نمی‌شود */
+#app { width: 100%; max-width: 440px; margin: auto; }
 
 .screen { display: none; }
 .screen.is-active { display: block; animation: pop 0.28s ease both; }
@@ -312,19 +317,24 @@ input[type="range"]::-moz-range-thumb {
 
 .code-box {
   margin: 10px 0 12px;
-  padding: 14px 10px;
+  padding: 13px 8px;
   border-radius: 16px;
   background: var(--surface-2);
   border: 1px dashed var(--line);
+  overflow: hidden;
 }
 .code {
-  font-size: clamp(28px, 10vw, 40px);
+  font-size: clamp(22px, 8vw, 36px);
   font-weight: 800;
-  letter-spacing: 10px;
+  letter-spacing: 4px;
+  text-indent: 4px;
   direction: ltr;
-  text-indent: 10px;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  line-height: 1.4;
   font-family: "SF Mono", "Segoe UI", Tahoma, monospace;
   color: var(--text);
+  max-width: 100%;
 }
 
 /* ---------- تایمر ---------- */
@@ -373,7 +383,33 @@ input[type="range"]::-moz-range-thumb {
 
 .site-foot { color: #5f6779; font-size: 11.5px; text-align: center; }
 
-@media (max-width: 360px) {
-  .card { padding: 18px 14px; }
-  .logo { font-size: 24px; }
+@media (max-width: 380px) {
+  body { padding-left: 10px; padding-right: 10px; }
+  .card { padding: 16px 12px; border-radius: 16px; }
+  .logo { font-size: 23px; }
+  .sub { font-size: 13px; }
+  .btn.big { font-size: 16px; padding: 14px 16px; }
+  .timer-wrap { width: 150px; height: 150px; }
+  .timer-num { font-size: 36px; }
+  .seats { gap: 6px; }
+  .seat { min-width: 36px; height: 36px; padding: 0 8px; }
+  .role-secret { font-size: clamp(28px, 10vw, 40px); }
+  .hint-word { font-size: clamp(24px, 8vw, 34px); }
+  .field { margin-bottom: 16px; }
+  .code { font-size: clamp(20px, 7.5vw, 30px); letter-spacing: 3px; text-indent: 3px; }
+}
+
+/* گوشی‌های کوتاه (قد کمتر از ۷۰۰ پیکسل) */
+@media (max-height: 700px) {
+  .card { padding: 16px 14px; }
+  .logo { font-size: 23px; }
+  .sub { margin-bottom: 12px; font-size: 13px; }
+  .field { margin-bottom: 14px; }
+  .timer-wrap { width: 150px; height: 150px; margin: 0 auto; }
+  .timer-num { font-size: 36px; }
+  .seats { margin: 12px 0; }
+  .role-secret { font-size: clamp(28px, 10vw, 40px); margin: 10px 0 2px; }
+  .hint-box { margin: 12px 0 2px; padding: 10px 10px 12px; }
+  .hint-word { font-size: clamp(24px, 8vw, 34px); }
+  .btn.big { padding: 14px 16px; }
 }
