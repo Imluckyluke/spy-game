@@ -29,6 +29,7 @@ const N = {
   timeUp: false,
   word: null,
   spyIdx: [],
+  roles: [],
   role: null,
   tickId: null,
   joinPaneOn: true,
@@ -275,6 +276,7 @@ function syncHostState() {
     msg.word = N.word.w;
     msg.hint = N.word.h;
     msg.spyIdx = N.spyIdx;
+    msg.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.includes(p.i) }));
   }
   pub(`${N.root}/state`, msg);
   if (N.isHost) renderLobby();
@@ -388,6 +390,7 @@ function onGuestMessage(topic, msg) {
     if (data.phase === "reveal" && data.word) {
       N.word = { w: data.word, h: data.hint };
       N.spyIdx = data.spyIdx || [];
+      N.roles = data.roles || [];
       N.phase = "reveal";
       renderNetReveal();
       return;
@@ -469,6 +472,8 @@ function netReveal() {
   if (!N.isHost || !N.word) return;
   N.phase = "reveal";
   N.endsAt = 0;
+  N.timeUp = false;
+  N.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.includes(p.i) }));
   stopNetTick();
   syncHostState();
   renderNetReveal();
@@ -536,7 +541,7 @@ function renderLobby() {
   $n("roomCode").textContent = N.code;
   $n("netRoleNote").textContent = N.isHost
     ? N.asPlayer
-      ? "شما بازیکن ۱ هستید و نقش می‌گیرید."
+      ? "شما بازیکن ۱ هستید. نقش‌ها بین همهٔ بازیکنان از جمله شما قرعه‌کشی می‌شود."
       : "شما فقط میزبانید و نقشی نمی‌گیرید؛ دکمه‌های شروع و افشا با شماست."
     : "";
   const seats = seatList();
@@ -677,6 +682,14 @@ function renderNetReveal() {
   $n("revealMsg").textContent = spyNames.length
     ? `جاسوس: ${spyNames.join(" و ")}`
     : "—";
+  $n("revealAll").innerHTML = N.roles.length
+    ? `<details><summary>نقش همهٔ بازیکنان</summary><div class="reveal-all-list">${N.roles
+        .map(
+          (r) =>
+            `<span class="reveal-tag ${r.spy ? "spy" : ""}">${esc(r.name)}${r.host ? " 👑" : ""} — ${r.spy ? "جاسوس" : "کلمه را داشت"}</span>`
+        )
+        .join("")}</div></details>`
+    : "";
   $n("againBtn").style.display = N.isHost ? "" : "none";
   $n("menuBtn").textContent = N.isHost ? "بستن روم" : "خروج از روم";
   window.showScreen("reveal");

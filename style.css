@@ -363,6 +363,14 @@ input[type="range"]::-moz-range-thumb {
 }
 .reveal-tag.spy { background: rgba(255, 77, 106, 0.14); border-color: rgba(255, 77, 106, 0.45); color: #ffb3c0; }
 
+.reveal-all { margin-top: 10px; }
+.reveal-all summary { cursor: pointer; color: var(--muted); font-size: 12.5px; padding: 6px 0; list-style: none; }
+.reveal-all summary::marker { display: none; }
+.reveal-all summary::before { content: "▾ "; }
+.reveal-all[open] summary::before { content: "▴ "; }
+.reveal-all-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+.reveal-all-list .reveal-tag { font-size: 12.5px; padding: 5px 10px; font-weight: 600; }
+
 .site-foot { color: #5f6779; font-size: 11.5px; text-align: center; }
 
 @media (max-width: 360px) {

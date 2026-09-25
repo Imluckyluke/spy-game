@@ -307,6 +307,7 @@ function reveal() {
     `<span class="reveal-tag">راهنما: ${state.word.h}</span>`;
   $("revealMsg").textContent =
     `جاسوس‌ها بازیکن ${spies.map((i) => fa(i + 1)).join(" و ")} بودند. اگر حدس شما درست بود، آفرین!`;
+  $("revealAll").innerHTML = "";
   $("againBtn").style.display = "";
   $("againBtn").textContent = "یک دور دیگر";
   $("menuBtn").textContent = "تغییر تنظیمات";
