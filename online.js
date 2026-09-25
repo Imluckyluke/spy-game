@@ -2,6 +2,8 @@
    ارتباط فقط از راه یک بروکر عمومی MQTT (WebSocket) انجام می‌شود؛
    نقش هر بازیکن فقط در «موضوع» مخصوص خودش فرستاده می‌شود. */
 
+const MIN_PLAYERS = 3;
+
 const NET_BROKERS = [
   "wss://broker.hivemq.com:8884/mqtt",
   "wss://test.mosquitto.org:8081/mqtt",
@@ -20,6 +22,7 @@ const N = {
   players: [],
   phase: "idle",
   max: 6,
+  asPlayer: true,
   spies: 1,
   seconds: 60,
   endsAt: 0,
@@ -122,8 +125,8 @@ async function hostCreate() {
   N.isHost = true;
   N.myId = uid();
   N.myName = name;
-  N.myIndex = 0;
-  N.players = [{ i: 0, id: N.myId, name: name }];
+  N.myIndex = N.asPlayer ? 0 : -1;
+  N.players = [];
   N.phase = "lobby";
   N.active = true;
 
@@ -192,9 +195,19 @@ function onHostMessage(topic, msg) {
   }
 }
 
+function seatList() {
+  const list = N.players.slice();
+  if (N.asPlayer) list.unshift({ i: 0, id: N.myId, name: N.myName, host: true });
+  return list;
+}
+
+function activeSeats() {
+  return seatList().map((p) => p.i);
+}
+
 function addGuest(data) {
   const existing = N.players.find((x) => x.id === data.id);
-  if (!existing && N.players.length >= N.max) {
+  if (!existing && seatList().length >= N.max) {
     pub(`${N.root}/to/${data.id}`, { t: "full", from: N.myId });
     return;
   }
@@ -202,7 +215,7 @@ function addGuest(data) {
   const name = (data.name || "بازیکن").slice(0, 14);
   let p = existing;
   if (!p) {
-    p = { i: N.players.length, id: data.id, name: dupName(name, data.id) };
+    p = { i: N.players.length + 1, id: data.id, name: dupName(name, data.id) };
     N.players.push(p);
   } else {
     p.name = dupName(name, data.id);
@@ -249,7 +262,9 @@ function syncHostState() {
     t: "state",
     from: N.myId,
     phase: N.phase,
-    players: N.players.map((p) => ({ i: p.i, name: p.name })),
+    players: seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host })),
+    asPlayer: N.asPlayer,
+    minPlayers: MIN_PLAYERS,
     max: N.max,
     spies: N.spies,
     seconds: N.seconds,
@@ -407,19 +422,20 @@ function hostGone() {
 
 function netStart() {
   if (!N.isHost) return;
-  if (N.players.length < 3) return;
+  if (seatList().length < MIN_PLAYERS) return;
   N.word = WORDS[Math.floor(Math.random() * WORDS.length)];
-  const count = Math.max(1, Math.min(N.spies, Math.floor(N.players.length / 2)));
-  N.spyIdx = shuffleArray(Array.from({ length: N.players.length }, (_, i) => i)).slice(0, count);
+  const seats = activeSeats();
+  const count = Math.max(1, Math.min(N.spies, Math.floor(seats.length / 2)));
+  N.spyIdx = shuffleArray(seats).slice(0, count);
   N.phase = "role";
   N.endsAt = 0;
   N.timeUp = false;
 
   N.players.forEach((p) => sendWelcome(p, giveRole(p.i)));
-  const me = N.players[0];
-  N.role = giveRole(me.i);
+  N.role = N.asPlayer ? giveRole(0) : null;
   syncHostState();
-  renderNetRole();
+  if (N.asPlayer) renderNetRole();
+  else openNetPlay();
 }
 
 function netStartTalk() {
@@ -510,7 +526,7 @@ function openLobby(tag) {
   $n("hostSettings").style.display = N.isHost ? "" : "none";
   $n("lobbyHint").textContent = N.isHost
     ? "این کد را برای دوستانتان بفرستید تا با گوشی خودشان وارد شوند"
-    : "منتظر میزبان… اگر کد را از او گرفته‌اید، صفحه را باز نگه دارید";
+    : "منتظر میزبان… صفحه را باز نگه دارید";
   renderNetChips();
   renderLobby();
   window.showScreen("lobby");
@@ -518,23 +534,44 @@ function openLobby(tag) {
 
 function renderLobby() {
   $n("roomCode").textContent = N.code;
-  $n("lobbySeats").innerHTML = N.players
+  $n("netRoleNote").textContent = N.isHost
+    ? N.asPlayer
+      ? "شما بازیکن ۱ هستید و نقش می‌گیرید."
+      : "شما فقط میزبانید و نقشی نمی‌گیرید؛ دکمه‌های شروع و افشا با شماست."
+    : "";
+  const seats = seatList();
+  $n("lobbySeats").innerHTML = seats
     .map(
       (p) =>
-        `<span class="seat with-name ${p.i === N.myIndex ? "now" : "seen"}"><b>${window.SPY_FA(p.i + 1)}${p.i === 0 ? " 👑" : ""}</b><i>${esc(p.name)}</i></span>`
+        `<span class="seat with-name ${p.i === N.myIndex ? "now" : "seen"}"><b>${window.SPY_FA(p.i + 1)}${p.host ? " 👑" : ""}</b><i>${esc(p.name)}</i></span>`
     )
-    .join("");
-  $n("lobbyCount").textContent = `${window.SPY_FA(N.players.length)} بازیکن متصل — حداکثر ${window.SPY_FA(N.max)}`;
+    .join("") +
+    (N.isHost
+      ? `<span class="seat with-name master"><b>🎯</b><i>${esc(N.myName)} (میزبان)</i></span>`
+      : "");
+  const n = seatList().length;
+  $n("lobbyCount").textContent = `${window.SPY_FA(n)} بازیکن حاضر — حداکثر ${window.SPY_FA(N.max)}`;
   if (N.isHost) {
     const btn = $n("netStartBtn");
-    const okCount = N.players.length >= 3;
-    btn.disabled = !okCount;
-    btn.textContent = okCount ? "شروع بازی و پخش نقش‌ها" : `برای شروع حداقل ۳ بازیکن لازم است (${window.SPY_FA(N.players.length)})`;
+    const ready = n >= MIN_PLAYERS;
+    btn.disabled = !ready;
+    btn.textContent = ready
+      ? "شروع بازی و پخش نقش‌ها"
+      : `${window.SPY_FA(MIN_PLAYERS - n)} بازیکن دیگر لازم است تا بازی شروع شود (${window.SPY_FA(n)} از ${window.SPY_FA(MIN_PLAYERS)})`;
   }
 }
 
 function renderNetChips() {
   if (!N.isHost) return;
+  $n("netRoleChips").innerHTML = [
+    { v: true, t: "👑 هم بازی می‌کنم" },
+    { v: false, t: "🎯 فقط میزبان (بازی نمی‌کنم)" },
+  ]
+    .map(
+      (o) =>
+        `<button type="button" class="chip ${N.asPlayer === o.v ? "on" : ""}" data-asplayer="${o.v}">${o.t}</button>`
+    )
+    .join("");
   $n("netMaxChips").innerHTML = [4, 6, 8, 10, 12]
     .map((n) => `<button type="button" class="chip ${n === N.max ? "on" : ""}" data-max="${n}">${window.SPY_FA(n)} نفر</button>`)
     .join("");
@@ -615,8 +652,8 @@ function stopNetTick() {
 }
 
 function renderNetPlay() {
-  $n("netSeats").innerHTML = N.players
-    .map((p) => `<span class="seat seen">${window.SPY_FA(p.i + 1)}</span>`)
+  $n("netSeats").innerHTML = seatList()
+    .map((p) => `<span class="seat seen">${window.SPY_FA(p.i + 1)}${p.host ? " 👑" : ""}</span>`)
     .join("");
   if (N.isHost && N.endsAt) $n("netTalkBtn").textContent = "پایان و افشا";
 }
@@ -625,14 +662,15 @@ function renderNetReveal() {
   stopNetTick();
   $n("revealKicker").textContent = "کلمهٔ این دور";
   $n("revealWord").textContent = N.word ? N.word.w : "";
+  const seats = seatList();
   const spyNames = N.spyIdx.map((i) => {
-    const p = N.players.find((x) => x.i === i);
+    const p = seats.find((x) => x.i === i);
     return p ? p.name : "بازیکن " + window.SPY_FA(i + 1);
   });
   $n("revealList").innerHTML =
     N.spyIdx.map((i) => {
-      const p = N.players.find((x) => x.i === i);
-      const label = p ? esc(p.name) : window.SPY_FA(i + 1) + (i === 0 ? " (میزبان)" : "");
+      const p = seats.find((x) => x.i === i);
+      const label = p ? esc(p.name) : window.SPY_FA(i + 1);
       return `<span class="reveal-tag spy">🕵️ ${label} — جاسوس</span>`;
     }).join("") +
     (N.word ? `<span class="reveal-tag">راهنما: ${esc(N.word.h)}</span>` : "");
@@ -699,11 +737,20 @@ function initOnline() {
     flash(done ? "لینک روم کپی شد ✓" : "لینک: " + url);
   });
 
+  $n("netRoleChips").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-asplayer]");
+    if (!c || N.phase !== "lobby") return;
+    N.asPlayer = c.dataset.asplayer === "true";
+    N.myIndex = N.asPlayer ? 0 : -1;
+    N.role = null;
+    renderNetChips();
+    renderLobby();
+    syncHostState();
+  });
   $n("netMaxChips").addEventListener("click", (e) => {
     const c = e.target.closest("[data-max]");
     if (!c) return;
     N.max = Math.max(3, +c.dataset.max);
-    if (N.players.length > N.max) N.players.length = N.max;
     renderNetChips();
     syncHostState();
   });
@@ -786,6 +833,8 @@ window.NET = {
   N,
   init: initOnline,
   isActive: () => N.active,
+  seats: seatList,
+  activeSeats,
   hostCreate,
   guestJoin,
   start: netStart,

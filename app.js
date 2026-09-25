@@ -25,7 +25,7 @@ const state = {
   wakeLock: null,
 };
 
-const TIMES = [30, 60, 90, 120, 180, 240, 300];
+const TIMES = [30, 60, 90, 120, 180, 240, 300, 600];
 const timeLabel = (s) =>
   s < 60 ? `${fa(s)} ثانیه` : s % 60 === 0 ? `${fa(s / 60)} دقیقه` : `${fa(s / 60)}٫${fa((s % 60) / 10)} دقیقه`;
 

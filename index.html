@@ -10,8 +10,6 @@
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="bg"></div>
-
 <main id="app">
 
   <!-- ====== صفحهٔ اول ====== -->
@@ -165,6 +163,7 @@
       <div class="role-badge" id="lobbyTag">میزبان</div>
       <p class="sub" id="lobbyHint">این کد را برای دوستانتان بفرستید</p>
       <div class="code-box"><div class="code" id="roomCode">------</div></div>
+      <p class="sub" id="netRoleNote" style="margin:0"></p>
       <div class="row center-row">
         <button class="btn ghost" id="copyCodeBtn">کپی کد</button>
         <button class="btn ghost" id="shareBtn">اشتراک‌گذاری</button>
@@ -174,6 +173,10 @@
       <p class="sub" id="lobbyCount">—</p>
 
       <div id="hostSettings">
+        <div class="field">
+          <div class="field-head"><label>نقش شما</label></div>
+          <div class="chips" id="netRoleChips"></div>
+        </div>
         <div class="field">
           <div class="field-head"><label>حداکثر بازیکن</label></div>
           <div class="chips" id="netMaxChips"></div>
