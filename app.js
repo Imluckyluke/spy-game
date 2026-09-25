@@ -25,18 +25,38 @@ const state = {
 };
 
 const screens = {
+  home: $("screen-home"),
   setup: $("screen-setup"),
   turn: $("screen-turn"),
   role: $("screen-role"),
   play: $("screen-play"),
+  online: $("screen-online"),
+  lobby: $("screen-lobby"),
+  netrole: $("screen-netrole"),
+  netplay: $("screen-netplay"),
   reveal: $("screen-reveal"),
 };
 
 function show(name) {
   Object.values(screens).forEach((s) => s.classList.remove("is-active"));
-  screens[name].classList.add("is-active");
+  const el = screens[name];
+  if (el) el.classList.add("is-active");
   window.scrollTo({ top: 0 });
 }
+
+const netOn = () => window.NET && window.NET.isActive();
+
+/* ---------------- صفحهٔ اول ---------------- */
+
+$("toOfflineBtn").addEventListener("click", () => {
+  renderDots();
+  renderSpyChips();
+  renderTimeChips();
+  show("setup");
+});
+$("toOnlineBtn").addEventListener("click", () => show("online"));
+$("homeBtn").addEventListener("click", () => show("home"));
+$("homeBtn2").addEventListener("click", () => show("home"));
 
 /* ---------------- تنظیمات ---------------- */
 
@@ -267,12 +287,19 @@ function reveal() {
     `<span class="reveal-tag">راهنما: ${state.word.h}</span>`;
   $("revealMsg").textContent =
     `جاسوس‌ها بازیکن ${spies.map((i) => fa(i + 1)).join(" و ")} بودند. اگر حدس شما درست بود، آفرین!`;
+  $("againBtn").style.display = "";
+  $("againBtn").textContent = "یک دور دیگر";
+  $("menuBtn").textContent = "تغییر تنظیمات";
   show("reveal");
   buzz([40, 60, 120]);
 }
 
-$("againBtn").addEventListener("click", () => newRound());
+$("againBtn").addEventListener("click", () => {
+  if (netOn()) return window.NET.again();
+  newRound();
+});
 $("menuBtn").addEventListener("click", () => {
+  if (netOn()) return window.NET.leave();
   stopTimer();
   show("setup");
 });
@@ -305,3 +332,6 @@ renderDots();
 renderSpyChips();
 renderTimeChips();
 $("wordCount").textContent = `${fa(WORDS.length)} کلمهٔ فارسی`;
+
+window.SPY_FA = fa;
+window.showScreen = show;

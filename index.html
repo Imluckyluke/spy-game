@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0f1020" />
 <title>جاسوس — بازی کلمه پنهان</title>
-<meta name="description" content="بازی جاسوس با ۱۰۰ کلمهٔ فارسی؛ گوشی را بین بازیکن‌ها بچرخانید و جاسوس را پیدا کنید." />
+<meta name="description" content="بازی جاسوس با ۱۰۰ کلمهٔ فارسی؛ حضوری با یک گوشی یا آنلاین با ساخت روم و کد اشتراک‌گذاری." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128526;</text></svg>" />
 <link rel="stylesheet" href="style.css" />
 </head>
@@ -14,11 +14,22 @@
 
 <main id="app">
 
-  <!-- ====== صفحهٔ تنظیمات ====== -->
-  <section class="screen is-active" id="screen-setup">
-    <div class="card">
+  <!-- ====== صفحهٔ اول ====== -->
+  <section class="screen is-active" id="screen-home">
+    <div class="card center">
       <h1 class="logo">🕵️ بازی جاسوس</h1>
-      <p class="sub">کلمه پنهان را پیدا کنید؛ جاسوس فقط یک «راهنما» می‌بیند.</p>
+      <p class="sub">همه یک کلمهٔ فارسی می‌بینند، جز جاسوس که فقط یک «راهنما» می‌بیند.</p>
+      <button class="btn primary big" id="toOfflineBtn">🖐️ بازی حضوری — یک گوشی</button>
+      <button class="btn net-alt big" id="toOnlineBtn">📱 بازی آنلاین — هرکس با گوشی خودش</button>
+      <p class="hint-line">در بازی آنلاین، میزبان یک «کد روم» می‌سازد و بقیه با گوشی خودشان به آن می‌پیوندند.</p>
+    </div>
+  </section>
+
+  <!-- ====== صفحهٔ تنظیمات ====== -->
+  <section class="screen" id="screen-setup">
+    <div class="card">
+      <h2 class="turn-q" style="text-align:center">بازی حضوری</h2>
+      <p class="sub" style="text-align:center">گوشی را بین بازیکن‌ها بچرخانید.</p>
 
       <div class="field">
         <div class="field-head">
@@ -49,7 +60,7 @@
       </div>
 
       <button class="btn primary big" id="startBtn">شروع بازی</button>
-      <p class="hint-line">گوشی را بین بازیکن‌ها بچرخانید؛ هیچ‌کس نباید نقش بقیه را ببیند.</p>
+      <button class="btn ghost" id="homeBtn">بازگشت</button>
     </div>
   </section>
 
@@ -100,6 +111,118 @@
     </div>
   </section>
 
+  <!-- ====== صفحهٔ ورود/ساخت روم ====== -->
+  <section class="screen" id="screen-online">
+    <div class="card">
+      <h2 class="turn-q" style="text-align:center">بازی آنلاین</h2>
+      <p class="sub" style="text-align:center">هرکس با گوشی خودش نقشش را جداگانه می‌بیند.</p>
+
+      <div class="field">
+        <div class="field-head"><label>اسم شما</label></div>
+        <input class="text-input" id="nameInput" maxlength="14" placeholder="مثلاً سارا" autocomplete="nickname" />
+      </div>
+
+      <div class="tabs">
+        <button type="button" class="tab on" id="tabJoin">ورود به روم</button>
+        <button type="button" class="tab" id="tabCreate">ساخت روم</button>
+      </div>
+
+      <div id="joinPane">
+        <div class="field">
+          <div class="field-head"><label>کد روم</label></div>
+          <input class="text-input code-input" id="codeInput" maxlength="6" inputmode="latin" autocapitalize="characters" spellcheck="false" placeholder="A3F9K2" dir="ltr" />
+        </div>
+        <button class="btn primary big" id="joinBtn">ورود</button>
+      </div>
+
+      <div id="createPane" style="display:none">
+        <p class="sub" style="margin:0 0 14px">میزبان بازی می‌شود: تعداد جاسوس و زمان را خودش انتخاب می‌کند و کد روم را برای بقیه می‌فرستد.</p>
+        <button class="btn net-alt big" id="createBtn">ساخت روم جدید</button>
+      </div>
+
+      <details class="adv">
+        <summary>تنظیمات پیشرفته</summary>
+        <div class="field">
+          <div class="field-head"><label>سرور پیام</label></div>
+          <input class="text-input" id="brokerInput" dir="ltr" spellcheck="false" />
+          <p class="hint-line" style="margin-top:8px">اگر سرورهای عمومی در شبکهٔ شما کار نکرد، می‌توانید نشانی سرور MQTT دلخواه‌تان را بنویسید.</p>
+        </div>
+      </details>
+
+      <p class="sub net-status" id="netStatus"></p>
+      <button class="btn ghost" id="homeBtn2">بازگشت</button>
+    </div>
+  </section>
+
+  <!-- ====== صفحهٔ لابی روم ====== -->
+  <section class="screen" id="screen-lobby">
+    <div class="card center">
+      <div class="role-badge" id="lobbyTag">میزبان</div>
+      <p class="sub" id="lobbyHint">این کد را برای دوستانتان بفرستید</p>
+      <div class="code-box"><div class="code" id="roomCode">------</div></div>
+      <div class="row center-row">
+        <button class="btn ghost" id="copyCodeBtn">کپی کد</button>
+        <button class="btn ghost" id="shareBtn">اشتراک‌گذاری</button>
+      </div>
+
+      <div class="seats" id="lobbySeats"></div>
+      <p class="sub" id="lobbyCount">—</p>
+
+      <div id="hostSettings">
+        <div class="field">
+          <div class="field-head"><label>حداکثر بازیکن</label></div>
+          <div class="chips" id="netMaxChips"></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><label>تعداد جاسوس‌ها</label></div>
+          <div class="chips" id="netSpyChips"></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><label>زمان گفت‌وگو</label></div>
+          <div class="chips" id="netTimeChips"></div>
+        </div>
+        <button class="btn primary big" id="netStartBtn">شروع بازی و پخش نقش‌ها</button>
+      </div>
+
+      <button class="btn ghost" id="netLeaveBtn">خروج از روم</button>
+    </div>
+  </section>
+
+  <!-- ====== نقش آنلاین ====== -->
+  <section class="screen" id="screen-netrole">
+    <div class="card center role-card" id="netRoleCard">
+      <div class="role-badge" id="netRoleBadge">شما</div>
+      <div class="role-secret" id="netRoleSecret">کلمه</div>
+      <div class="role-kicker" id="netRoleKicker"></div>
+      <p class="role-help" id="netRoleHelp"></p>
+      <p class="role-help warn" id="netWarn">⚠️ صفحه را نبندید؛ نقش شما جایی ذخیره نمی‌شود.</p>
+      <button class="btn primary big" id="netHideBtn">پنهان کن</button>
+    </div>
+  </section>
+
+  <!-- ====== گفت‌وگوی آنلاین ====== -->
+  <section class="screen" id="screen-netplay">
+    <div class="card center">
+      <h2 class="turn-q" id="netPlayTitle">گفت‌وگو!</h2>
+      <p class="sub" id="netPlayHint">—</p>
+
+      <div class="timer-wrap">
+        <svg class="timer-ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-bg" cx="60" cy="60" r="52" />
+          <circle class="ring-fg" id="netRingFg" cx="60" cy="60" r="52" />
+        </svg>
+        <div class="timer-num" id="netTimerNum">۶۰</div>
+      </div>
+
+      <div class="seats" id="netSeats"></div>
+      <div class="row" id="netHostControls">
+        <button class="btn ghost" id="netMinusBtn">−۳۰ ثانیه</button>
+        <button class="btn primary" id="netTalkBtn">شروع گفت‌وگو</button>
+        <button class="btn ghost" id="netPlusBtn">+۳۰ ثانیه</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ====== صفحهٔ افشا ====== -->
   <section class="screen" id="screen-reveal">
     <div class="card center">
@@ -118,7 +241,9 @@
 
 <footer class="site-foot">بازی جاسوس • بدون نصب، فقط در مرورگر • <span id="wordCount"></span></footer>
 
+<script src="https://unpkg.com/mqtt@5.10.4/dist/mqtt.min.js"></script>
 <script src="words.js"></script>
 <script src="app.js"></script>
+<script src="online.js"></script>
 </body>
 </html>
