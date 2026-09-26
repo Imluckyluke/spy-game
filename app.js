@@ -359,3 +359,66 @@ window.showScreen = show;
 window.SPY_TIMES = TIMES;
 window.SPY_TIME_LABEL = timeLabel;
 window.SPY_DEBUG = { state, tick };
+
+/* ---------------- نصب روی گوشی (PWA) ---------------- */
+
+function initPWA() {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {
+        /* مرورگر پشتیبانی نمی‌کند؛ بازی بدون آن هم کار می‌کند */
+      });
+    });
+  }
+
+  // میان‌برهای مانیفست: ?go=offline / ?go=online
+  const go = new URLSearchParams(location.search).get("go");
+  if (go === "offline" || go === "online") {
+    show(go === "online" ? "online" : "setup");
+  }
+}
+
+// خبر «نسخهٔ جدید آماده است» از سرویس‌ورکر
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (e) => {
+    if (e.data && e.data.type === "SW_UPDATED" && !document.getElementById("updateBar")) showUpdateBar();
+  });
+}
+
+function showUpdateBar() {
+  const bar = document.createElement("div");
+  bar.className = "update-bar";
+  bar.id = "updateBar";
+  bar.innerHTML =
+    '<span>نسخهٔ جدید آماده است</span><button type="button" class="update-btn">به‌روزرسانی</button>';
+  bar.querySelector("button").addEventListener("click", () => {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage("skip-waiting");
+    }
+    location.reload();
+  });
+  document.body.appendChild(bar);
+}
+
+/* ---------------- ریپل متریال ---------------- */
+
+const reduceMotion =
+  typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+if (!reduceMotion) {
+  document.addEventListener("pointerdown", (e) => {
+    const target = e.target.closest(".btn, .chip, .step-btn");
+    if (!target || target.disabled) return;
+    const rect = target.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const span = document.createElement("span");
+    span.className = "ripple";
+    span.style.width = span.style.height = size * 2 + "px";
+    span.style.right = e.clientX - rect.left - size + "px";
+    span.style.top = e.clientY - rect.top - size + "px";
+    target.appendChild(span);
+    setTimeout(() => span.remove(), 600);
+  });
+}
+
+initPWA();
