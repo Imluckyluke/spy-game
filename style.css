@@ -1,30 +1,51 @@
-/* تم تیرهٔ ساده و تخت — بدون گرادیانت */
+/* ==========================================================
+   بازی جاسوس — تم تیرهٔ تخت، تک‌رنگ، فونت وزیرمتن
+   ========================================================== */
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("fonts/Vazirmatn-var.woff2") format("woff2-variations"),
+       url("fonts/Vazirmatn-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #0d0e12;
   --surface: #16181e;
   --surface-2: #1c1f27;
+  --surface-3: #21242c;
   --line: #262a34;
-  --line-soft: #1f222a;
+  --line-2: #333947;
   --text: #edeff5;
   --muted: #8a92a6;
+  --faint: #5f6779;
   --accent: #d9dde7;
   --accent-2: #edeff4;
   --on-accent: #0d0e12;
-  --accent-dim: #242833;
   --spy: #ff4d6a;
+  --spy-soft: #ffb3c0;
   --amber: #f0b23f;
+  --amber-soft: #f7d79a;
   --radius: 18px;
+  --tap: 44px;
+  --font: "Vazirmatn", system-ui, "Segoe UI", Tahoma, sans-serif;
 }
 
 * { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 
 html, body { min-height: 100%; }
 
 body {
   margin: 0;
-  font-family: Vazirmatn, "Segoe UI", Tahoma, "Noto Naskh Arabic", system-ui, sans-serif;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.75;
   color: var(--text);
   background: var(--bg);
   display: flex;
@@ -34,60 +55,101 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   gap: 12px;
-  padding: max(14px, env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
+  padding: max(16px, env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
 
-/* روی گوشی محتوا بالا نمی‌پرد و اگر بلند بود، بریده نمی‌شود */
-#app { width: 100%; max-width: 440px; margin: auto; }
+#app { width: 100%; max-width: 430px; margin: auto; }
+
+h1, h2, p, ol, ul { margin: 0; }
+b, strong { font-weight: 700; }
 
 .screen { display: none; }
-.screen.is-active { display: block; animation: pop 0.28s ease both; }
+.screen.is-active { display: block; animation: pop 0.26s ease both; }
 
 @keyframes pop {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
 
+/* ---------- کارت و متن ---------- */
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 22px 18px;
 }
-
 .card.center { text-align: center; }
+.center-text { text-align: center; }
 
-.logo { margin: 0 0 8px; font-size: 28px; font-weight: 800; letter-spacing: -0.4px; }
-.sub { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.95; }
-.hint-line { margin: 14px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.9; }
+.logo { font-size: 27px; font-weight: 800; margin-bottom: 6px; }
+.turn-q { font-size: 20px; font-weight: 800; line-height: 1.6; margin: 8px 0 4px; }
 
-h2.turn-q { margin: 10px 0 6px; font-size: 21px; font-weight: 800; }
+.sub { color: var(--muted); font-size: 14px; line-height: 1.9; margin-bottom: 18px; }
+.sub.no-bottom { margin-bottom: 4px; }
+.sub.no-top { margin-top: 0; }
+.hint-line { color: var(--faint); font-size: 12.5px; line-height: 1.9; margin-top: 14px; }
+.hint-line.no-top { margin-top: 6px; }
 
-/* ---------- تنظیمات ---------- */
-.field { margin-bottom: 20px; text-align: right; }
-.field-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.field-head label { font-size: 14.5px; font-weight: 700; }
+.badge, .role-badge {
+  display: inline-block;
+  padding: 6px 15px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* ---------- روش بازی ---------- */
+.how { margin-top: 18px; text-align: right; }
+.how summary,
+.adv summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 0;
+  list-style: none;
+}
+.how summary::marker, .adv summary::marker { display: none; }
+.how summary::before { content: "＋ "; }
+.how[open] summary::before { content: "－ "; }
+.how-list {
+  margin: 6px 18px 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 2;
+}
+.how-list li::marker { color: var(--faint); }
+
+/* ---------- فرم ---------- */
+.field { margin-bottom: 20px; }
+.field-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.field-head label { font-size: 14px; font-weight: 600; }
 
 output {
-  min-width: 40px;
+  min-width: 38px;
   text-align: center;
-  font-weight: 800;
-  font-size: 14.5px;
-  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 3px 11px;
   border-radius: 999px;
   background: var(--surface-2);
-  color: var(--text);
   border: 1px solid var(--line);
+  color: var(--text);
 }
 
 .stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 
 .step-btn {
-  width: 40px; height: 40px; flex: 0 0 40px;
-  border-radius: 12px;
+  width: var(--tap); height: var(--tap); flex: 0 0 var(--tap);
+  border-radius: 13px;
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--text);
@@ -95,15 +157,11 @@ output {
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
+.step-btn:hover { background: var(--surface-3); }
 .step-btn:active { transform: scale(0.92); border-color: #565d70; }
-.step-btn:hover { background: #21242c; }
 
 .dots { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; justify-content: center; }
-.dots i {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--line);
-  transition: background 0.2s, transform 0.2s;
-}
+.dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); transition: background 0.2s; }
 .dots i.on { background: var(--accent); }
 
 input[type="range"] {
@@ -116,163 +174,42 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 22px; height: 22px; border-radius: 50%;
+  width: 24px; height: 24px; border-radius: 50%;
   background: var(--accent);
-  border: 3px solid var(--surface);
+  border: 4px solid var(--surface);
   cursor: pointer;
 }
 input[type="range"]::-moz-range-thumb {
   width: 18px; height: 18px; border-radius: 50%;
-  background: var(--accent); border: 3px solid var(--surface); cursor: pointer;
+  background: var(--accent); border: 4px solid var(--surface); cursor: pointer;
 }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   padding: 9px 14px;
+  min-height: 38px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--muted);
   font-family: inherit;
-  font-size: 13.5px; font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.chip:hover { color: var(--text); border-color: #3a4050; }
-.chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.chip:hover { color: var(--text); border-color: var(--line-2); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
 .chip:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ---------- دکمه‌ها ---------- */
-.btn {
-  font-family: inherit;
-  font-weight: 700;
-  border-radius: 14px;
-  border: 1px solid transparent;
-  padding: 14px 18px;
-  font-size: 15.5px;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s, opacity 0.15s, color 0.15s;
-  width: 100%;
-  color: #fff;
-}
-.btn:active { transform: scale(0.985); }
-.btn.primary { background: var(--accent); color: var(--on-accent); }
-.btn.primary:hover { background: var(--accent-2); }
-.btn.net-alt { margin-top: 10px; background: var(--surface-2); border-color: var(--line); color: var(--text); }
-.btn.net-alt:hover { background: #21242c; border-color: #3c4250; }
-.btn.ghost {
-  margin-top: 10px;
-  background: transparent;
-  border-color: var(--line);
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 13.5px;
-  padding: 11px 18px;
-}
-.btn.ghost:hover { color: var(--text); border-color: #3a4050; }
-.btn.big { font-size: 17px; padding: 16px 18px; }
-.btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.row { display: flex; gap: 8px; margin-top: 14px; }
-.row .btn { margin-top: 0; }
-.row .btn.ghost { width: auto; flex: 0 0 auto; white-space: nowrap; padding: 13px 12px; }
-.center-row { justify-content: center; }
-.center-row .btn { flex: 0 0 auto; }
-
-/* ---------- لابی ---------- */
-.badge, .role-badge {
-  display: inline-block;
-  padding: 7px 16px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  color: var(--muted);
-}
-
-.seats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0; }
-.seat {
-  min-width: 40px; height: 40px;
-  padding: 0 10px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 12px;
-  font-size: 13.5px; font-weight: 700;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  color: var(--muted);
-  transition: all 0.2s;
-}
-.seat.seen { background: #21242c; border-color: #333947; color: #aab1c2; }
-.seat.now { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-
-.seat.with-name {
-  flex-direction: column;
-  gap: 1px;
-  min-width: 64px;
-  height: auto;
-  padding: 7px 9px;
-  line-height: 1.45;
-}
-.seat.with-name b { font-size: 14px; font-weight: 800; }
-.seat.with-name i {
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 600;
-  max-width: 86px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.85;
-}
-.seat.master { background: transparent; border-style: dashed; color: var(--muted); }
-
-/* ---------- نقش ---------- */
-.role-card { transition: background 0.2s, border-color 0.2s; }
-.role-card.is-spy { background: #1d1418; border-color: rgba(255, 77, 106, 0.45); }
-.role-card.is-spy .role-badge { background: rgba(255, 77, 106, 0.16); border-color: rgba(255, 77, 106, 0.5); color: #ffb3c0; }
-.role-card.is-agent .role-badge { background: var(--surface-2); border-color: var(--line); color: var(--muted); }
-
-.role-secret {
-  font-size: clamp(32px, 11vw, 46px);
-  font-weight: 900;
-  line-height: 1.5;
-  margin: 14px 0 4px;
-  letter-spacing: -0.5px;
-  word-break: break-word;
-}
-.role-secret.spy-word { color: var(--spy); }
-.role-kicker { color: var(--muted); font-size: 13px; }
-.role-help { color: var(--muted); font-size: 12.5px; line-height: 1.9; margin: 12px 0 0; }
-.role-help.warn { color: var(--amber); margin-top: 8px; }
-
-.hint-box {
-  margin: 16px 0 4px;
-  padding: 14px 12px 16px;
-  border-radius: 16px;
-  border: 1px dashed var(--amber);
-  background: rgba(240, 178, 63, 0.09);
-}
-.hint-box[hidden] { display: none; }
-.hint-label { display: block; font-size: 12px; font-weight: 700; color: var(--amber); margin-bottom: 4px; }
-.hint-word {
-  font-size: clamp(26px, 9vw, 38px);
-  font-weight: 900;
-  color: #f7d79a;
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.note { margin: 10px 0 0; min-height: 22px; color: var(--amber); font-size: 13px; font-weight: 700; line-height: 1.9; }
-
-/* ---------- آنلاین ---------- */
 .text-input {
   width: 100%;
   font-family: inherit;
-  font-size: 15.5px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text);
-  padding: 13px 15px;
+  padding: 12px 14px;
+  min-height: var(--tap);
   border-radius: 14px;
   border: 1px solid var(--line);
   background: var(--surface-2);
@@ -280,9 +217,8 @@ input[type="range"]::-moz-range-thumb {
   transition: border-color 0.15s;
 }
 .text-input:focus { border-color: #4c5364; }
-.text-input::placeholder { color: #5f6779; font-weight: 500; }
-
-.code-input { text-align: center; letter-spacing: 6px; font-size: 23px; font-weight: 800; text-transform: uppercase; }
+.text-input::placeholder { color: var(--faint); font-weight: 400; }
+.code-input { text-align: center; letter-spacing: 6px; font-size: 22px; font-weight: 800; text-transform: uppercase; }
 
 .tabs {
   display: flex;
@@ -302,23 +238,119 @@ input[type="range"]::-moz-range-thumb {
   color: var(--muted);
   font-family: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
-.tab.on { background: var(--accent); color: var(--on-accent); }
+.tab.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 
-.adv { margin-top: 16px; }
-.adv summary { cursor: pointer; color: var(--muted); font-size: 12.5px; padding: 8px 0; list-style: none; }
-.adv summary::marker { display: none; }
+.adv { margin-top: 14px; }
 .adv summary::before { content: "▾ "; }
 .adv[open] summary::before { content: "▴ "; }
-.adv .field { margin: 10px 0 0; }
+.adv .field { margin: 8px 0 0; }
+.net-status { text-align: center; font-size: 12.5px; margin: 14px 0 0; min-height: 20px; }
 
-.net-status { margin: 14px 0 0; text-align: center; color: var(--muted); font-size: 12.5px; min-height: 20px; }
+/* ---------- دکمه‌ها ---------- */
+.btn {
+  font-family: inherit;
+  font-weight: 700;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  padding: 13px 18px;
+  min-height: var(--tap);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s, border-color 0.15s, color 0.15s;
+  width: 100%;
+  color: var(--text);
+}
+.btn:active { transform: scale(0.985); }
+.btn:focus-visible,
+.chip:focus-visible,
+.step-btn:focus-visible,
+.text-input:focus-visible,
+input[type="range"]:focus-visible,
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-2); }
+.btn.net-alt { margin-top: 10px; background: var(--surface-2); border-color: var(--line); }
+.btn.net-alt:hover { background: var(--surface-3); border-color: var(--line-2); }
+.btn.ghost {
+  margin-top: 10px;
+  background: transparent;
+  border-color: var(--line);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 11px 18px;
+}
+.btn.ghost:hover { color: var(--text); border-color: var(--line-2); }
+.btn.big { font-size: 16.5px; font-weight: 700; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.row { display: flex; gap: 8px; margin-top: 14px; }
+.row .btn { margin-top: 0; }
+.row .btn.ghost { width: auto; flex: 0 0 auto; white-space: nowrap; padding: 13px 12px; }
+.center-row { justify-content: center; }
+.center-row .btn { flex: 0 0 auto; }
+
+/* ---------- صندلی بازیکن‌ها ---------- */
+.seats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0; }
+.seat {
+  min-width: 40px; height: 40px;
+  padding: 0 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  font-size: 13.5px; font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.seat.seen { background: var(--surface-3); border-color: var(--line-2); color: #aab1c2; }
+.seat.now { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.seat.with-name { flex-direction: column; gap: 0; min-width: 64px; height: auto; padding: 7px 9px; line-height: 1.5; }
+.seat.with-name b { font-size: 13.5px; font-weight: 700; }
+.seat.with-name i {
+  font-style: normal; font-size: 11px; font-weight: 500; max-width: 86px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.85;
+}
+.seat.master { background: transparent; border-style: dashed; }
+
+/* ---------- نقش ---------- */
+.role-card { transition: background 0.2s, border-color 0.2s; }
+.role-card.is-spy { background: #1c1418; border-color: rgba(255, 77, 106, 0.45); }
+.role-card.is-spy .role-badge { background: rgba(255, 77, 106, 0.14); border-color: rgba(255, 77, 106, 0.45); color: var(--spy-soft); }
+.role-card.is-agent .role-badge { background: var(--surface-2); color: var(--muted); }
+
+.role-secret {
+  font-size: clamp(30px, 10.5vw, 44px);
+  font-weight: 800;
+  line-height: 1.55;
+  margin: 12px 0 2px;
+  word-break: break-word;
+}
+.role-secret.spy-word { color: var(--spy); }
+.role-kicker { color: var(--muted); font-size: 13px; }
+
+.hint-box {
+  margin: 14px 0 2px;
+  padding: 13px 12px 15px;
+  border-radius: 16px;
+  border: 1px dashed var(--amber);
+  background: rgba(240, 178, 63, 0.08);
+}
+.hint-label { display: block; font-size: 12px; font-weight: 600; color: var(--amber); margin-bottom: 2px; }
+.hint-word { font-size: clamp(24px, 8.5vw, 36px); font-weight: 800; color: var(--amber-soft); line-height: 1.5; word-break: break-word; }
+
+.role-help { color: var(--muted); font-size: 12.5px; line-height: 1.95; margin-top: 12px; }
+.role-help.warn { color: var(--amber); margin-top: 6px; }
+.note { margin: 10px 0 0; min-height: 22px; color: var(--amber); font-size: 13px; font-weight: 600; line-height: 1.9; }
+
+/* ---------- کد روم ---------- */
 .code-box {
-  margin: 10px 0 12px;
+  margin: 8px 0 10px;
   padding: 13px 8px;
   border-radius: 16px;
   background: var(--surface-2);
@@ -333,14 +365,14 @@ input[type="range"]::-moz-range-thumb {
   direction: ltr;
   unicode-bidi: isolate;
   white-space: nowrap;
-  line-height: 1.4;
-  font-family: "SF Mono", "Segoe UI", Tahoma, monospace;
+  line-height: 1.45;
+  font-family: "SF Mono", ui-monospace, "Segoe UI", monospace;
   color: var(--text);
   max-width: 100%;
 }
 
 /* ---------- تایمر ---------- */
-.timer-wrap { position: relative; width: 178px; height: 178px; margin: 4px auto 0; }
+.timer-wrap { position: relative; width: 172px; height: 172px; margin: 2px auto 0; }
 .timer-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
 .ring-bg { fill: none; stroke: var(--surface-2); stroke-width: 8; }
 .ring-fg {
@@ -355,7 +387,9 @@ input[type="range"]::-moz-range-thumb {
 .timer-num {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 42px; font-weight: 800;
+  font-size: 40px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 .timer-wrap.hurry .ring-fg { stroke: var(--spy); }
 .timer-wrap.hurry .timer-num { color: var(--spy); animation: blink 1s infinite; }
@@ -363,55 +397,55 @@ input[type="range"]::-moz-range-thumb {
 
 /* ---------- افشا ---------- */
 .reveal-kicker { color: var(--muted); font-size: 13.5px; }
-.reveal-word {
-  font-size: clamp(32px, 11vw, 46px);
-  font-weight: 900;
-  margin: 6px 0 4px;
-}
-.reveal-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 4px; }
+.reveal-word { font-size: clamp(30px, 10.5vw, 44px); font-weight: 800; margin: 4px 0 2px; }
+.reveal-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0 2px; }
 .reveal-tag {
-  padding: 7px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 700;
-  background: var(--surface-2); border: 1px solid var(--line);
+  padding: 6px 13px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
 }
-.reveal-tag.spy { background: rgba(255, 77, 106, 0.14); border-color: rgba(255, 77, 106, 0.45); color: #ffb3c0; }
-
+.reveal-tag.spy { background: rgba(255, 77, 106, 0.13); border-color: rgba(255, 77, 106, 0.45); color: var(--spy-soft); }
 .reveal-all { margin-top: 10px; }
 .reveal-all summary { cursor: pointer; color: var(--muted); font-size: 12.5px; padding: 6px 0; list-style: none; }
 .reveal-all summary::marker { display: none; }
 .reveal-all summary::before { content: "▾ "; }
 .reveal-all[open] summary::before { content: "▴ "; }
 .reveal-all-list { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
-.reveal-all-list .reveal-tag { font-size: 12.5px; padding: 5px 10px; font-weight: 600; }
+.reveal-all-list .reveal-tag { font-size: 12.5px; padding: 5px 10px; font-weight: 500; }
 
-.site-foot { color: #5f6779; font-size: 11.5px; text-align: center; }
+.site-foot { color: var(--faint); font-size: 11.5px; text-align: center; line-height: 1.8; }
 
+/* ---------- صفحه‌های کوچک ---------- */
 @media (max-width: 380px) {
   body { padding-left: 10px; padding-right: 10px; }
-  .card { padding: 16px 12px; border-radius: 16px; }
+  .card { padding: 16px 13px; border-radius: 16px; }
   .logo { font-size: 23px; }
   .sub { font-size: 13px; }
-  .btn.big { font-size: 16px; padding: 14px 16px; }
-  .timer-wrap { width: 150px; height: 150px; }
-  .timer-num { font-size: 36px; }
+  .btn.big { font-size: 15.5px; padding: 12px 16px; }
+  .timer-wrap { width: 148px; height: 148px; }
+  .timer-num { font-size: 34px; }
   .seats { gap: 6px; }
   .seat { min-width: 36px; height: 36px; padding: 0 8px; }
-  .role-secret { font-size: clamp(28px, 10vw, 40px); }
-  .hint-word { font-size: clamp(24px, 8vw, 34px); }
+  .role-secret { font-size: clamp(26px, 9.5vw, 38px); }
+  .hint-word { font-size: clamp(22px, 8vw, 32px); }
   .field { margin-bottom: 16px; }
   .code { font-size: clamp(20px, 7.5vw, 30px); letter-spacing: 3px; text-indent: 3px; }
 }
 
-/* گوشی‌های کوتاه (قد کمتر از ۷۰۰ پیکسل) */
 @media (max-height: 700px) {
   .card { padding: 16px 14px; }
   .logo { font-size: 23px; }
   .sub { margin-bottom: 12px; font-size: 13px; }
   .field { margin-bottom: 14px; }
-  .timer-wrap { width: 150px; height: 150px; margin: 0 auto; }
-  .timer-num { font-size: 36px; }
+  .timer-wrap { width: 146px; height: 146px; margin: 0 auto; }
+  .timer-num { font-size: 34px; }
   .seats { margin: 12px 0; }
-  .role-secret { font-size: clamp(28px, 10vw, 40px); margin: 10px 0 2px; }
-  .hint-box { margin: 12px 0 2px; padding: 10px 10px 12px; }
-  .hint-word { font-size: clamp(24px, 8vw, 34px); }
-  .btn.big { padding: 14px 16px; }
+  .role-secret { font-size: clamp(26px, 9.5vw, 38px); margin: 8px 0 2px; }
+  .hint-box { margin: 10px 0 2px; padding: 10px 10px 12px; }
+  .hint-word { font-size: clamp(22px, 8vw, 32px); }
+  .btn.big { padding: 12px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
 }

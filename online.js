@@ -528,7 +528,7 @@ function openLobby(tag) {
   stopNetTick();
   $n("lobbyTag").textContent = tag === "میزبان" ? "میزبان روم" : "مهمان";
   $n("roomCode").textContent = N.code;
-  $n("hostSettings").style.display = N.isHost ? "" : "none";
+  $n("hostSettings").hidden = !N.isHost;
   $n("lobbyHint").textContent = N.isHost
     ? "این کد را برای دوستانتان بفرستید تا با گوشی خودشان وارد شوند"
     : "منتظر میزبان… صفحه را باز نگه دارید";
@@ -606,7 +606,7 @@ function renderNetRole() {
 }
 
 function openNetPlay() {
-  $n("netHostControls").style.display = N.isHost ? "" : "none";
+  $n("netHostControls").hidden = !N.isHost;
   $n("netPlayHint").textContent = N.isHost
     ? "شما میزبانید؛ گفت‌وگو را شروع کنید."
     : "حرف بزنید و صف‌بندی کنید؛ جاسوس نباید لو برود.";
@@ -690,7 +690,7 @@ function renderNetReveal() {
         )
         .join("")}</div></details>`
     : "";
-  $n("againBtn").style.display = N.isHost ? "" : "none";
+  $n("againBtn").hidden = !N.isHost;
   $n("menuBtn").textContent = N.isHost ? "بستن روم" : "خروج از روم";
   window.showScreen("reveal");
 }
@@ -829,8 +829,8 @@ function switchPane(join) {
   N.joinPaneOn = join;
   $n("tabJoin").classList.toggle("on", join);
   $n("tabCreate").classList.toggle("on", !join);
-  $n("joinPane").style.display = join ? "" : "none";
-  $n("createPane").style.display = join ? "none" : "";
+  $n("joinPane").hidden = !join;
+  $n("createPane").hidden = join;
   setStatus("");
 }
 
