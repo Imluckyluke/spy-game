@@ -432,6 +432,10 @@ function hostGone() {
 function netStart() {
   if (!N.isHost) return;
   if (seatList().length < MIN_PLAYERS) return;
+  if (typeof WORDS === "undefined" || !WORDS.length) {
+    setStatus("❌ فایل کلمات بارگذاری نشد؛ صفحه را کامل ببند و با اینترنت دوباره باز کن.");
+    return;
+  }
   const picked = pickWordAvoidRepeat(N.lastWordIdx);
   N.lastWordIdx = picked.idx;
   N.word = picked.word;

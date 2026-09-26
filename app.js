@@ -1,6 +1,26 @@
 const $ = (id) => document.getElementById(id);
 const FA = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 const fa = (n) => String(n).replace(/\d/g, (d) => FA[+d]);
+
+/* ---------- نمایشگر خطا ----------
+   هر خطای جاوااسکریپت را همان‌جا روی صفحه نشان می‌دهد تا اگر روی گوشی
+   چیزی کار نکرد، متن خطا را بتوان برای سازنده فرستاد. */
+function showErr(msg) {
+  try {
+    let t = document.getElementById("errToast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "errToast";
+      t.className = "err-toast";
+      document.body.appendChild(t);
+    }
+    t.hidden = false;
+    t.textContent = "⚠️ " + msg;
+  } catch (e) { /* آخر خط */ }
+}
+window.addEventListener("error", (e) => {
+  showErr("خطا: " + (e.message || "نامشخص") + " — از این پیام عکس بگیر و برای سازنده بفرست.");
+});
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const shuffle = (arr) => {
   const a = arr.slice();
@@ -282,6 +302,10 @@ function loadSettings() {
 /* ---------------- شروع دور ---------------- */
 
 function newRound() {
+  if (typeof WORDS === "undefined" || !WORDS.length) {
+    showErr("فایل کلمات بارگذاری نشد؛ صفحه را کامل ببند و با اینترنت دوباره باز کن.");
+    return;
+  }
   const picked = pickWordAvoidRepeat(state.lastWordIdx);
   state.lastWordIdx = picked.idx;
   state.word = picked.word;
