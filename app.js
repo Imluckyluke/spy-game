@@ -21,6 +21,10 @@ function showErr(msg) {
 window.addEventListener("error", (e) => {
   showErr("خطا: " + (e.message || "نامشخص") + " — از این پیام عکس بگیر و برای سازنده بفرست.");
 });
+// علامت «اسکریپت اصلی بالا آمد» برای مخفی شدن پیام js-dead-note
+try {
+  document.documentElement.className += " app-ok";
+} catch (e) { /* نادیده */ }
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const shuffle = (arr) => {
   const a = arr.slice();
