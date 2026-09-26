@@ -29,8 +29,8 @@
       <h1 class="logo">🕵️ بازی جاسوس</h1>
       <p class="sub">همه یک کلمهٔ فارسی می‌بینند، جز <b>جاسوس</b> که فقط یک <b>راهنما</b> می‌بیند.</p>
 
-      <button class="btn primary big" id="toOfflineBtn">بازی حضوری — یک گوشی</button>
-      <button class="btn net-alt big" id="toOnlineBtn">بازی آنلاین — هرکس با گوشی خودش</button>
+      <button type="button" class="btn primary big" id="toOfflineBtn">بازی حضوری — یک گوشی</button>
+      <button type="button" class="btn net-alt big" id="toOnlineBtn">بازی آنلاین — هرکس با گوشی خودش</button>
 
       <div class="rules">
         <h3 class="rules-title">بازی حضوری با یک گوشی</h3>
@@ -101,8 +101,8 @@
         <div class="slider-scale"><span>۳۰ ثانیه</span><span>۱۰ دقیقه</span></div>
       </div>
 
-      <button class="btn primary big" id="startBtn">شروع بازی</button>
-      <button class="btn ghost" id="homeBtn">بازگشت</button>
+      <button type="button" class="btn primary big" id="startBtn">شروع بازی</button>
+      <button type="button" class="btn ghost" id="homeBtn">بازگشت</button>
     </div>
   </section>
 
@@ -113,8 +113,8 @@
       <h2 class="turn-q">گوشی را به دستت گرفته‌ای؟</h2>
       <p class="sub">بعد از زدن دکمه فقط خودت نقشت را می‌بینی. بعد از خواندن، گوشی را به نفر بعدی بده.</p>
       <div class="seats" id="seats"></div>
-      <button class="btn primary big" id="peekBtn">نقش من را ببین</button>
-      <button class="btn ghost" id="backSetupBtn">بازگشت به تنظیمات</button>
+      <button type="button" class="btn primary big" id="peekBtn">نقش من را ببین</button>
+      <button type="button" class="btn ghost" id="backSetupBtn">بازگشت به تنظیمات</button>
     </div>
   </section>
 
@@ -129,8 +129,8 @@
         <div class="hint-word" id="roleHintWord">—</div>
       </div>
       <p class="role-help" id="roleHelp"></p>
-      <button class="btn primary big" id="hideBtn">پنهان کن و نفر بعدی</button>
-      <button class="btn ghost" id="cancelPeekBtn">برگشت</button>
+      <button type="button" class="btn primary big" id="hideBtn">پنهان کن و نفر بعدی</button>
+      <button type="button" class="btn ghost" id="cancelPeekBtn">برگشت</button>
     </div>
   </section>
 
@@ -151,9 +151,9 @@
 
       <div class="seats" id="seatsPlay"></div>
       <div class="row">
-        <button class="btn ghost" id="minus30Btn">−۳۰ ثانیه</button>
-        <button class="btn primary" id="revealBtn">پایان و افشا</button>
-        <button class="btn ghost" id="plus30Btn">+۳۰ ثانیه</button>
+        <button type="button" class="btn ghost" id="minus30Btn">−۳۰ ثانیه</button>
+        <button type="button" class="btn primary" id="revealBtn">پایان و افشا</button>
+        <button type="button" class="btn ghost" id="plus30Btn">+۳۰ ثانیه</button>
       </div>
     </div>
   </section>
@@ -179,12 +179,12 @@
           <div class="field-head"><label for="codeInput">کد روم</label></div>
           <input class="text-input code-input" id="codeInput" maxlength="6" inputmode="latin" autocapitalize="characters" spellcheck="false" placeholder="A3F9K2" dir="ltr" />
         </div>
-        <button class="btn primary big" id="joinBtn">ورود</button>
+        <button type="button" class="btn primary big" id="joinBtn">ورود</button>
       </div>
 
       <div id="createPane" role="tabpanel" hidden>
         <p class="sub no-bottom">میزبان می‌شوی: تعداد جاسوس و زمان را انتخاب کن و کد روم را برای بقیه بفرست.</p>
-        <button class="btn primary big" id="createBtn">ساخت روم و گرفتن کد</button>
+        <button type="button" class="btn primary big" id="createBtn">ساخت روم و گرفتن کد</button>
       </div>
 
       <details class="adv">
@@ -197,7 +197,7 @@
       </details>
 
       <p class="sub net-status" id="netStatus" role="status"></p>
-      <button class="btn ghost" id="homeBtn2">بازگشت</button>
+      <button type="button" class="btn ghost" id="homeBtn2">بازگشت</button>
     </div>
   </section>
 
@@ -209,8 +209,8 @@
       <div class="code-box"><div class="code" id="roomCode">------</div></div>
       <p class="sub no-top" id="netRoleNote"></p>
       <div class="row center-row">
-        <button class="btn ghost" id="copyCodeBtn">کپی کد</button>
-        <button class="btn ghost" id="shareBtn">اشتراک‌گذاری</button>
+        <button type="button" class="btn ghost" id="copyCodeBtn">کپی کد</button>
+        <button type="button" class="btn ghost" id="shareBtn">اشتراک‌گذاری</button>
       </div>
 
       <div class="seats" id="lobbySeats"></div>
@@ -273,10 +273,10 @@
         </div>
         </div>
 
-        <button class="btn primary big" id="netStartBtn">شروع بازی و پخش نقش‌ها</button>
+        <button type="button" class="btn primary big" id="netStartBtn">شروع بازی و پخش نقش‌ها</button>
       </div>
 
-      <button class="btn ghost" id="netLeaveBtn">خروج از روم</button>
+      <button type="button" class="btn ghost" id="netLeaveBtn">خروج از روم</button>
     </div>
   </section>
 
@@ -292,7 +292,7 @@
       </div>
       <p class="role-help" id="netRoleHelp"></p>
       <p class="role-help warn" id="netWarn">⚠️ این صفحه را نبند؛ نقشت جایی ذخیره نمی‌شود و دیگر نمی‌توانی ببینی‌اش.</p>
-      <button class="btn primary big" id="netHideBtn">پنهان کن</button>
+      <button type="button" class="btn primary big" id="netHideBtn">پنهان کن</button>
     </div>
   </section>
 
@@ -313,9 +313,9 @@
 
       <div class="seats" id="netSeats"></div>
       <div class="row" id="netHostControls">
-        <button class="btn ghost" id="netMinusBtn">−۳۰ ثانیه</button>
-        <button class="btn primary" id="netTalkBtn">شروع گفت‌وگو</button>
-        <button class="btn ghost" id="netPlusBtn">+۳۰ ثانیه</button>
+        <button type="button" class="btn ghost" id="netMinusBtn">−۳۰ ثانیه</button>
+        <button type="button" class="btn primary" id="netTalkBtn">شروع گفت‌وگو</button>
+        <button type="button" class="btn ghost" id="netPlusBtn">+۳۰ ثانیه</button>
       </div>
     </div>
   </section>
@@ -329,8 +329,8 @@
       <div class="reveal-all" id="revealAll"></div>
       <p class="sub" id="revealMsg"></p>
       <div class="row">
-        <button class="btn primary big" id="againBtn">یک دور دیگر</button>
-        <button class="btn ghost" id="menuBtn">تغییر تنظیمات</button>
+        <button type="button" class="btn primary big" id="againBtn">یک دور دیگر</button>
+        <button type="button" class="btn ghost" id="menuBtn">تغییر تنظیمات</button>
       </div>
     </div>
   </section>

@@ -279,11 +279,6 @@ function loadSettings() {
   } catch (e) { /* تنظیمات خراب، پیش‌فرض */ }
 }
 
-$("toOfflineBtn").addEventListener("click", () => {
-  initSetupControls();
-  show("setup");
-});
-
 /* ---------------- شروع دور ---------------- */
 
 function newRound() {
