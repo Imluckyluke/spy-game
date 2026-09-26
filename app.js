@@ -11,12 +11,80 @@ const shuffle = (arr) => {
   return a;
 };
 
+/* ---------- قرعه‌کشی امن و عادلانه ----------
+   secureInt از crypto استفاده می‌کند (رندوم واقعی) و اگر در دسترس نبود
+   به Math.random برمی‌گردد. drawSpiesFair جاسوس‌ها را یکنواخت بین
+   بازیکنان پخش می‌کند، با این قید که هیچ‌کس بیش از ۲ دور پشت‌سرهم
+   جاسوس نشود. streak برای هر صندلی، تعداد دورهای پیاپی جاسوس‌بودن است. */
+function secureInt(n) {
+  if (n <= 1) return 0;
+  try {
+    const c =
+      typeof crypto !== "undefined" && crypto.getRandomValues
+        ? crypto
+        : typeof msCrypto !== "undefined"
+          ? msCrypto
+          : null;
+    if (c) {
+      const buf = new Uint32Array(1);
+      const limit = Math.floor(4294967296 / n) * n;
+      let x;
+      do {
+        c.getRandomValues(buf);
+        x = buf[0];
+      } while (x >= limit);
+      return x % n;
+    }
+  } catch (e) { /* رندوم معمولی */ }
+  return Math.floor(Math.random() * n);
+}
+
+function secureShuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = secureInt(i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function drawSpiesFairFrom(seats, spyCount, streak) {
+  const n = Math.max(1, Math.min(spyCount, seats.length));
+  const eligible = seats.filter((i) => (streak[i] || 0) < 2);
+  let pool;
+  if (eligible.length >= n) {
+    pool = eligible;
+  } else {
+    // حالت خاص ریاضی (مثلاً ۳ نفره با ۲ جاسوس): اول همهٔ واجدها،
+    // بعد کم‌سابقه‌ترین‌ها به قید قرعه
+    const rest = secureShuffle(seats.filter((i) => (streak[i] || 0) >= 2));
+    rest.sort((a, b) => (streak[a] || 0) - (streak[b] || 0)); // مرتب‌سازی پایدار: شانس مساوی بین هم‌سابقه‌ها
+    pool = eligible.concat(rest);
+  }
+  return new Set(secureShuffle(pool).slice(0, n));
+}
+
+function bumpStreak(streak, seats, spySet) {
+  seats.forEach((i) => {
+    streak[i] = spySet.has(i) ? (streak[i] || 0) + 1 : 0;
+  });
+}
+
+function pickWordAvoidRepeat(lastIdx) {
+  if (WORDS.length < 2) return { idx: 0, word: WORDS[0] };
+  let idx = secureInt(WORDS.length);
+  if (idx === lastIdx) idx = (idx + 1 + secureInt(WORDS.length - 1)) % WORDS.length;
+  return { idx, word: WORDS[idx] };
+}
+
 const state = {
   players: 6,
   spies: 1,
   seconds: 120,
   word: null,
+  lastWordIdx: -1,
   spySet: new Set(),
+  spyStreak: {},
   seen: new Set(),
   turn: 0,
   timeLeft: 120,
@@ -219,9 +287,12 @@ $("toOfflineBtn").addEventListener("click", () => {
 /* ---------------- شروع دور ---------------- */
 
 function newRound() {
-  const word = pick(WORDS);
-  state.word = word;
-  state.spySet = new Set(shuffle(Array.from({ length: state.players }, (_, i) => i)).slice(0, state.spies));
+  const picked = pickWordAvoidRepeat(state.lastWordIdx);
+  state.lastWordIdx = picked.idx;
+  state.word = picked.word;
+  const seats = Array.from({ length: state.players }, (_, i) => i);
+  state.spySet = drawSpiesFairFrom(seats, state.spies, state.spyStreak);
+  bumpStreak(state.spyStreak, seats, state.spySet);
   state.seen = new Set();
   state.turn = 0;
   showTurn();
@@ -260,12 +331,12 @@ $("peekBtn").addEventListener("click", () => {
   secret.classList.toggle("spy-word", isSpy);
   secret.textContent = isSpy ? "تو جاسوسی!" : state.word.w;
 
-  $("roleKicker").textContent = isSpy ? "این راهنما فقط مال توست" : "این کلمه را به کسی نگو";
+  $("roleKicker").textContent = isSpy ? "این راهنما فقط برای توست" : "این کلمه را به کسی نگو";
   $("roleHintBox").hidden = !isSpy;
   $("roleHintWord").textContent = isSpy ? state.word.h : "";
   $("roleHelp").textContent = isSpy
-    ? "کلمهٔ اصلی را تو هم نمی‌دانی. وانمود کن خبر نداری و بگذار بقیه به تو شک کنند!"
-    : "تو جاسوس نیستی. با توضیح‌هایت کلمه را لو نده و بگذار جاسوس خودش را نشان بدهد.";
+    ? "کلمهٔ اصلی را نمی‌دانی؛ فقط همین راهنما را داری. طوری حرف بزن که انگار کلمه را می‌دانی تا کسی به تو شک نکند!"
+    : "تو جاسوس نیستی. دربارهٔ کلمه حرف بزن ولی آن‌قدر واضح نگو که جاسوس بفهمد؛ جاسوس با حرف‌هایش خودش را لو می‌دهد.";
 
   $("hideBtn").textContent = isSpy
     ? "پنهان کن و نفر بعدی"

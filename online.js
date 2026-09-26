@@ -28,7 +28,9 @@ const N = {
   endsAt: 0,
   timeUp: false,
   word: null,
+  lastWordIdx: -1,
   spyIdx: [],
+  spyStreak: {},
   roles: [],
   role: null,
   tickId: null,
@@ -132,6 +134,8 @@ async function hostCreate() {
   N.players = [];
   N.phase = "lobby";
   N.active = true;
+  N.spyStreak = {};
+  N.lastWordIdx = -1;
 
   let code = null;
   for (let attempt = 0; attempt < 6 && !code; attempt++) {
@@ -428,10 +432,15 @@ function hostGone() {
 function netStart() {
   if (!N.isHost) return;
   if (seatList().length < MIN_PLAYERS) return;
-  N.word = WORDS[Math.floor(Math.random() * WORDS.length)];
+  const picked = pickWordAvoidRepeat(N.lastWordIdx);
+  N.lastWordIdx = picked.idx;
+  N.word = picked.word;
   const seats = activeSeats();
   const count = Math.max(1, Math.min(N.spies, Math.floor(seats.length / 2)));
-  N.spyIdx = shuffleArray(seats).slice(0, count);
+  N.spyIdx = drawSpiesFairFrom(seats, count, N.spyStreak);
+  seats.forEach((i) => {
+    N.spyStreak[i] = N.spyIdx.includes(i) ? (N.spyStreak[i] || 0) + 1 : 0;
+  });
   N.phase = "role";
   N.endsAt = 0;
   N.timeUp = false;
@@ -588,20 +597,20 @@ function renderNetRole() {
   $n("netRoleCard").classList.toggle("is-agent", !isSpy);
   $n("netRoleSecret").textContent = isSpy ? "تو جاسوسی!" : r.word || "—";
   $n("netRoleSecret").classList.toggle("spy-word", isSpy);
-  $n("netRoleKicker").textContent = isSpy ? "این راهنما فقط مال توست" : "این کلمه را به کسی نگو";
+  $n("netRoleKicker").textContent = isSpy ? "این راهنما فقط برای توست" : "این کلمه را به کسی نگو";
   $n("netHintBox").hidden = !isSpy;
   $n("netHintWord").textContent = isSpy ? r.hint : "";
   $n("netRoleHelp").textContent = isSpy
-    ? "کلمهٔ اصلی را تو هم نمی‌دانی. وانمود کن خبر نداری و بگذار بقیه به تو شک کنند!"
-    : "تو جاسوس نیستی. با توضیح زیاد کلمه را لو نده!";
+    ? "کلمهٔ اصلی را نمی‌دانی؛ فقط همین راهنما را داری. طوری حرف بزن که انگار کلمه را می‌دانی تا کسی به تو شک نکند!"
+    : "تو جاسوس نیستی؛ دربارهٔ کلمه حرف بزن ولی آن‌قدر واضح نگو که جاسوس بفهمد!";
   window.showScreen("netrole");
 }
 
 function openNetPlay() {
   $n("netHostControls").hidden = !N.isHost;
   $n("netPlayHint").textContent = N.isHost
-    ? "شما میزبانید؛ گفت‌وگو را شروع کنید."
-    : "حرف بزنید و صف‌بندی کنید؛ جاسوس نباید لو برود.";
+    ? "میزبان تویی؛ با «شروع گفت‌وگو» بحث را راه بینداز."
+    : "دربارهٔ کلمه حرف بزن و حدس بزن جاسوس کیست!";
   $n("netRingFg").style.strokeDashoffset = 0;
   $n("netTimerNum").parentElement.classList.remove("hurry");
   $n("netPlayNote").textContent = "";
@@ -696,6 +705,62 @@ function shuffleArray(a) {
     [x[i], x[j]] = [x[j], x[i]];
   }
   return x;
+}
+
+/* ---------- قرعه‌کشی امن و عادلانه (مشترک با منطق نسخهٔ حضوری) ----------
+   رندوم واقعی با crypto؛ هیچ صندلی بیش از ۲ دور پشت‌سرهم جاسوس نمی‌شود؛
+   در بقیهٔ حالت‌ها شانس همهٔ صندلی‌ها دقیقاً مساوی است. */
+function secureInt(n) {
+  if (n <= 1) return 0;
+  try {
+    const c =
+      typeof crypto !== "undefined" && crypto.getRandomValues
+        ? crypto
+        : typeof msCrypto !== "undefined"
+          ? msCrypto
+          : null;
+    if (c) {
+      const buf = new Uint32Array(1);
+      const limit = Math.floor(4294967296 / n) * n;
+      let x;
+      do {
+        c.getRandomValues(buf);
+        x = buf[0];
+      } while (x >= limit);
+      return x % n;
+    }
+  } catch (e) { /* رندوم معمولی */ }
+  return Math.floor(Math.random() * n);
+}
+
+function secureShuffle(a) {
+  const x = a.slice();
+  for (let i = x.length - 1; i > 0; i--) {
+    const j = secureInt(i + 1);
+    [x[i], x[j]] = [x[j], x[i]];
+  }
+  return x;
+}
+
+function drawSpiesFairFrom(seats, spyCount, streak) {
+  const n = Math.max(1, Math.min(spyCount, seats.length));
+  const eligible = seats.filter((i) => (streak[i] || 0) < 2);
+  let pool;
+  if (eligible.length >= n) {
+    pool = eligible;
+  } else {
+    const rest = secureShuffle(seats.filter((i) => (streak[i] || 0) >= 2));
+    rest.sort((a, b) => (streak[a] || 0) - (streak[b] || 0));
+    pool = eligible.concat(rest);
+  }
+  return secureShuffle(pool).slice(0, n);
+}
+
+function pickWordAvoidRepeat(lastIdx) {
+  if (WORDS.length < 2) return { idx: 0, word: WORDS[0] };
+  let idx = secureInt(WORDS.length);
+  if (idx === lastIdx) idx = (idx + 1 + secureInt(WORDS.length - 1)) % WORDS.length;
+  return { idx, word: WORDS[idx] };
 }
 
 /* ---------------- اتصال رویدادها ---------------- */

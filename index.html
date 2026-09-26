@@ -42,13 +42,13 @@
 
         <h3 class="rules-title">بازی آنلاین با گوشی هرکس</h3>
         <ol class="rules-list">
-          <li>میزبان «ساخت روم» را می‌زند و یک <b>کد ۶ حرفی</b> می‌گیرد؛ می‌تواند کد را کپی یا لینک را مستقیم در تلگرام بفرستد.</li>
+          <li>میزبان «ساخت روم» را می‌زند و یک <b>کد ۶ کاراکتری</b> می‌گیرد؛ می‌تواند کد را کپی یا لینک را مستقیم در تلگرام بفرستد.</li>
           <li>بقیه «ورود به روم» را می‌زنند، کد را وارد می‌کنند و وارد لابی می‌شوند. میزبان می‌تواند خودش هم بازیکن باشد یا فقط داور بماند.</li>
           <li>با «شروع بازی»، <b>هر گوشی فقط نقش خودش</b> را می‌بیند: غیرجاسوس کلمه، جاسوس راهنما.</li>
           <li>تایمر روی همهٔ گوشی‌ها همگام است؛ میزبان با «پایان و افشا» کلمه و نام جاسوس‌ها را روی همه صفحه‌ها نشان می‌دهد.</li>
         </ol>
 
-        <p class="rules-foot">در هر دو حالت، تا وقتی «پایان و افشا» زده نشود کلمه دیده نمی‌شود و نقش کسی را لو ندهید.</p>
+        <p class="rules-foot">در هر دو حالت، تا وقتی «پایان و افشا» زده نشود کلمه دیده نمی‌شود؛ نقشت را هم به کسی نگو! قرعه‌کشی جاسوس کاملاً تصادفی است و هیچ‌کس بیش از ۲ دور پشت‌سرهم جاسوس نمی‌شود.</p>
       </div>
     </div>
   </section>
@@ -138,7 +138,7 @@
   <section class="screen" id="screen-play">
     <div class="card center">
       <h2 class="turn-q">وقت گفت‌وگوست!</h2>
-      <p class="sub">با حرف اضافه و صف‌بندی حرف بزن تا جاسوس لو برود.</p>
+      <p class="sub">دربارهٔ کلمه حرف بزن؛ نه آن‌قدر واضح که جاسوس بفهمد، نه آن‌قدر گنگ که به خودت شک کنند!</p>
 
       <div class="timer-wrap">
         <svg class="timer-ring" viewBox="0 0 120 120" aria-hidden="true">
@@ -183,7 +183,7 @@
       </div>
 
       <div id="createPane" role="tabpanel" hidden>
-        <p class="sub no-bottom">میزبان بازی می‌شود: تعداد جاسوس و زمان را خودش انتخاب می‌کند و کد روم را برای بقیه می‌فرستد.</p>
+        <p class="sub no-bottom">میزبان می‌شوی: تعداد جاسوس و زمان را انتخاب کن و کد روم را برای بقیه بفرست.</p>
         <button class="btn primary big" id="createBtn">ساخت روم و گرفتن کد</button>
       </div>
 
@@ -217,16 +217,18 @@
       <p class="sub no-top" id="lobbyCount">—</p>
 
       <div id="hostSettings">
-        <div class="field">
-          <div class="field-head">
-            <label id="roleLabel">نقش شما</label>
-            <output id="roleOut" aria-labelledby="roleLabel">بازیکن</output>
+        <div class="panel">
+          <h3 class="panel-title">⚙️ تنظیمات بازی</h3>
+          <div class="field">
+            <div class="field-head">
+              <label id="roleLabel">نقش شما</label>
+              <output id="roleOut" aria-labelledby="roleLabel">بازیکن</output>
+            </div>
+            <div class="seg" id="netRoleSeg" role="group" aria-labelledby="roleLabel">
+              <button type="button" class="seg-btn on" data-asplayer="true">👑 بازیکن</button>
+              <button type="button" class="seg-btn" data-asplayer="false">🎯 داور</button>
+            </div>
           </div>
-          <div class="seg" id="netRoleSeg" role="group" aria-labelledby="roleLabel">
-            <button type="button" class="seg-btn on" data-asplayer="true">👑 بازیکن</button>
-            <button type="button" class="seg-btn" data-asplayer="false">🎯 داور</button>
-          </div>
-        </div>
 
         <div class="field">
           <div class="field-head">
@@ -269,6 +271,7 @@
           </div>
           <div class="slider-scale"><span>۳۰ ثانیه</span><span>۱۰ دقیقه</span></div>
         </div>
+        </div>
 
         <button class="btn primary big" id="netStartBtn">شروع بازی و پخش نقش‌ها</button>
       </div>
@@ -288,7 +291,7 @@
         <div class="hint-word" id="netHintWord">—</div>
       </div>
       <p class="role-help" id="netRoleHelp"></p>
-      <p class="role-help warn" id="netWarn">⚠️ صفحه را نبندید؛ نقش شما جایی ذخیره نمی‌شود.</p>
+      <p class="role-help warn" id="netWarn">⚠️ این صفحه را نبند؛ نقشت جایی ذخیره نمی‌شود و دیگر نمی‌توانی ببینی‌اش.</p>
       <button class="btn primary big" id="netHideBtn">پنهان کن</button>
     </div>
   </section>
@@ -334,7 +337,7 @@
 
 </main>
 
-<footer class="site-foot">بازی جاسوس • بدون نصب، فقط در مرورگر • <span id="wordCount"></span></footer>
+<footer class="site-foot">بازی جاسوس • بدون نصب، فقط در مرورگر • <span id="wordCount"></span><br />ساختهٔ <a href="https://t.me/imluckyluke" target="_blank" rel="noopener"><bdi>@imluckyluke</bdi></a> 🕵️</footer>
 
 <script src="vendor/mqtt.min.js" defer></script>
 <script src="words.js" defer></script>
