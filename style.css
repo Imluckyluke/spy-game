@@ -7,10 +7,11 @@
   --line-soft: #1f222a;
   --text: #edeff5;
   --muted: #8a92a6;
-  --accent: #5b6cff;
-  --accent-dim: #2a3160;
+  --accent: #d9dde7;
+  --accent-2: #edeff4;
+  --on-accent: #0d0e12;
+  --accent-dim: #242833;
   --spy: #ff4d6a;
-  --ok: #2fc48d;
   --amber: #f0b23f;
   --radius: 18px;
 }
@@ -77,8 +78,9 @@ output {
   font-size: 14.5px;
   padding: 4px 12px;
   border-radius: 999px;
-  background: var(--accent-dim);
-  color: #c9d0ff;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
 }
 
 .stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -93,8 +95,8 @@ output {
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
 }
-.step-btn:active { transform: scale(0.92); border-color: var(--accent); }
-.step-btn:hover { background: var(--accent-dim); }
+.step-btn:active { transform: scale(0.92); border-color: #565d70; }
+.step-btn:hover { background: #21242c; }
 
 .dots { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; justify-content: center; }
 .dots i {
@@ -137,7 +139,7 @@ input[type="range"]::-moz-range-thumb {
   transition: all 0.15s;
 }
 .chip:hover { color: var(--text); border-color: #3a4050; }
-.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .chip:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* ---------- دکمه‌ها ---------- */
@@ -154,10 +156,10 @@ input[type="range"]::-moz-range-thumb {
   color: #fff;
 }
 .btn:active { transform: scale(0.985); }
-.btn.primary { background: var(--accent); }
-.btn.primary:hover { background: #6b79ff; }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { background: var(--accent-2); }
 .btn.net-alt { margin-top: 10px; background: var(--surface-2); border-color: var(--line); color: var(--text); }
-.btn.net-alt:hover { border-color: var(--accent); color: #c9d0ff; }
+.btn.net-alt:hover { background: #21242c; border-color: #3c4250; }
 .btn.ghost {
   margin-top: 10px;
   background: transparent;
@@ -201,8 +203,8 @@ input[type="range"]::-moz-range-thumb {
   color: var(--muted);
   transition: all 0.2s;
 }
-.seat.seen { background: rgba(47, 196, 141, 0.12); border-color: rgba(47, 196, 141, 0.4); color: #9fe7c9; }
-.seat.now { background: var(--accent); border-color: var(--accent); color: #fff; }
+.seat.seen { background: #21242c; border-color: #333947; color: #aab1c2; }
+.seat.now { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 .seat.with-name {
   flex-direction: column;
@@ -229,7 +231,7 @@ input[type="range"]::-moz-range-thumb {
 .role-card { transition: background 0.2s, border-color 0.2s; }
 .role-card.is-spy { background: #1d1418; border-color: rgba(255, 77, 106, 0.45); }
 .role-card.is-spy .role-badge { background: rgba(255, 77, 106, 0.16); border-color: rgba(255, 77, 106, 0.5); color: #ffb3c0; }
-.role-card.is-agent .role-badge { background: var(--accent-dim); border-color: var(--accent-dim); color: #c9d0ff; }
+.role-card.is-agent .role-badge { background: var(--surface-2); border-color: var(--line); color: var(--muted); }
 
 .role-secret {
   font-size: clamp(32px, 11vw, 46px);
@@ -277,7 +279,7 @@ input[type="range"]::-moz-range-thumb {
   outline: none;
   transition: border-color 0.15s;
 }
-.text-input:focus { border-color: var(--accent); }
+.text-input:focus { border-color: #4c5364; }
 .text-input::placeholder { color: #5f6779; font-weight: 500; }
 
 .code-input { text-align: center; letter-spacing: 6px; font-size: 23px; font-weight: 800; text-transform: uppercase; }
@@ -304,7 +306,7 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   transition: all 0.15s;
 }
-.tab.on { background: var(--accent); color: #fff; }
+.tab.on { background: var(--accent); color: var(--on-accent); }
 
 .adv { margin-top: 16px; }
 .adv summary { cursor: pointer; color: var(--muted); font-size: 12.5px; padding: 8px 0; list-style: none; }
