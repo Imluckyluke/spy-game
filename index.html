@@ -61,25 +61,44 @@
 
       <div class="field">
         <div class="field-head">
-          <label for="players">تعداد بازیکن‌ها</label>
-          <output id="playersOut">۶</output>
+          <label for="playersRange">تعداد بازیکن‌ها</label>
+          <output id="playersOut" for="playersRange">۶</output>
         </div>
-        <div class="stepper">
-          <button type="button" class="step-btn" data-target="players" data-delta="-1" aria-label="یک نفر کمتر">−</button>
-          <div class="dots" id="playersDots"></div>
-          <button type="button" class="step-btn" data-target="players" data-delta="1" aria-label="یک نفر بیشتر">+</button>
+        <div class="slider-row">
+          <button type="button" class="icon-btn" id="playersMinus" aria-label="یک نفر کمتر">−</button>
+          <div class="slider">
+            <input type="range" id="playersRange" min="3" max="16" step="1" value="6" />
+          </div>
+          <button type="button" class="icon-btn" id="playersPlus" aria-label="یک نفر بیشتر">+</button>
         </div>
-        <input type="range" id="players" min="3" max="16" value="6" step="1" aria-label="تعداد بازیکن‌ها" />
+        <div class="slider-scale"><span>۳</span><span>۱۶</span></div>
       </div>
 
       <div class="field">
-        <div class="field-head"><label>تعداد جاسوس‌ها</label><output id="spiesOut">۱</output></div>
-        <div class="chips" id="spyChips" role="group" aria-label="تعداد جاسوس‌ها"></div>
+        <div class="field-head">
+          <label id="spiesLabel">تعداد جاسوس‌ها</label>
+          <output id="spiesOut" aria-labelledby="spiesLabel">۱</output>
+        </div>
+        <div class="seg" id="spySeg" role="group" aria-labelledby="spiesLabel">
+          <button type="button" class="seg-btn on" data-spy="1">۱</button>
+          <button type="button" class="seg-btn" data-spy="2">۲</button>
+          <button type="button" class="seg-btn" data-spy="3">۳</button>
+        </div>
       </div>
 
       <div class="field">
-        <div class="field-head"><label>زمان گفت‌وگو</label></div>
-        <div class="chips" id="timeChips" role="group" aria-label="زمان گفت‌وگو"></div>
+        <div class="field-head">
+          <label for="timeRange">زمان گفت‌وگو</label>
+          <output id="timeOut" for="timeRange">۲ دقیقه</output>
+        </div>
+        <div class="slider-row">
+          <button type="button" class="icon-btn" id="timeMinus" aria-label="زمان کمتر">−</button>
+          <div class="slider">
+            <input type="range" id="timeRange" min="30" max="600" step="30" value="120" />
+          </div>
+          <button type="button" class="icon-btn" id="timePlus" aria-label="زمان بیشتر">+</button>
+        </div>
+        <div class="slider-scale"><span>۳۰ ثانیه</span><span>۱۰ دقیقه</span></div>
       </div>
 
       <button class="btn primary big" id="startBtn">شروع بازی</button>
@@ -199,21 +218,58 @@
 
       <div id="hostSettings">
         <div class="field">
-          <div class="field-head"><label>نقش شما</label></div>
-          <div class="chips" id="netRoleChips" role="group"></div>
+          <div class="field-head">
+            <label id="roleLabel">نقش شما</label>
+            <output id="roleOut" aria-labelledby="roleLabel">بازیکن</output>
+          </div>
+          <div class="seg" id="netRoleSeg" role="group" aria-labelledby="roleLabel">
+            <button type="button" class="seg-btn on" data-asplayer="true">👑 بازیکن</button>
+            <button type="button" class="seg-btn" data-asplayer="false">🎯 داور</button>
+          </div>
         </div>
+
         <div class="field">
-          <div class="field-head"><label>حداکثر بازیکن</label></div>
-          <div class="chips" id="netMaxChips" role="group"></div>
+          <div class="field-head">
+            <label for="netMaxRange">حداکثر بازیکن</label>
+            <output id="netMaxOut" for="netMaxRange">۶</output>
+          </div>
+          <div class="slider-row">
+            <button type="button" class="icon-btn" id="netMaxMinus" aria-label="کمتر">−</button>
+            <div class="slider">
+              <input type="range" id="netMaxRange" min="4" max="12" step="1" value="6" />
+            </div>
+            <button type="button" class="icon-btn" id="netMaxPlus" aria-label="بیشتر">+</button>
+          </div>
+          <div class="slider-scale"><span>۴</span><span>۱۲</span></div>
         </div>
+
         <div class="field">
-          <div class="field-head"><label>تعداد جاسوس‌ها</label></div>
-          <div class="chips" id="netSpyChips" role="group"></div>
+          <div class="field-head">
+            <label id="netSpiesLabel">تعداد جاسوس‌ها</label>
+            <output id="netSpiesOut" aria-labelledby="netSpiesLabel">۱</output>
+          </div>
+          <div class="seg" id="netSpySeg" role="group" aria-labelledby="netSpiesLabel">
+            <button type="button" class="seg-btn on" data-nspies="1">۱</button>
+            <button type="button" class="seg-btn" data-nspies="2">۲</button>
+            <button type="button" class="seg-btn" data-nspies="3">۳</button>
+          </div>
         </div>
+
         <div class="field">
-          <div class="field-head"><label>زمان گفت‌وگو</label></div>
-          <div class="chips" id="netTimeChips" role="group"></div>
+          <div class="field-head">
+            <label for="netTimeRange">زمان گفت‌وگو</label>
+            <output id="netTimeOut" for="netTimeRange">۲ دقیقه</output>
+          </div>
+          <div class="slider-row">
+            <button type="button" class="icon-btn" id="netTimeMinus" aria-label="زمان کمتر">−</button>
+            <div class="slider">
+              <input type="range" id="netTimeRange" min="30" max="600" step="30" value="120" />
+            </div>
+            <button type="button" class="icon-btn" id="netTimePlus" aria-label="زمان بیشتر">+</button>
+          </div>
+          <div class="slider-scale"><span>۳۰ ثانیه</span><span>۱۰ دقیقه</span></div>
         </div>
+
         <button class="btn primary big" id="netStartBtn">شروع بازی و پخش نقش‌ها</button>
       </div>
 

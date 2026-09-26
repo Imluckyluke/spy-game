@@ -24,7 +24,7 @@ const N = {
   max: 6,
   asPlayer: true,
   spies: 1,
-  seconds: 60,
+  seconds: 120,
   endsAt: 0,
   timeUp: false,
   word: null,
@@ -34,6 +34,8 @@ const N = {
   tickId: null,
   joinPaneOn: true,
 };
+
+let ctlMax = null, ctlTime = null, segSpy = null, segRole = null;
 
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const $n = (id) => document.getElementById(id);
@@ -568,24 +570,14 @@ function renderLobby() {
 
 function renderNetChips() {
   if (!N.isHost) return;
-  $n("netRoleChips").innerHTML = [
-    { v: true, t: "👑 هم بازی می‌کنم" },
-    { v: false, t: "🎯 فقط میزبان (بازی نمی‌کنم)" },
-  ]
-    .map(
-      (o) =>
-        `<button type="button" class="chip ${N.asPlayer === o.v ? "on" : ""}" data-asplayer="${o.v}">${o.t}</button>`
-    )
-    .join("");
-  $n("netMaxChips").innerHTML = [4, 6, 8, 10, 12]
-    .map((n) => `<button type="button" class="chip ${n === N.max ? "on" : ""}" data-max="${n}">${window.SPY_FA(n)} نفر</button>`)
-    .join("");
-  $n("netSpyChips").innerHTML = [1, 2, 3]
-    .map((n) => `<button type="button" class="chip ${n === N.spies ? "on" : ""}" data-nspies="${n}">${window.SPY_FA(n)} جاسوس</button>`)
-    .join("");
-  $n("netTimeChips").innerHTML = window.SPY_TIMES.map(
-    (s) => `<button type="button" class="chip ${s === N.seconds ? "on" : ""}" data-nseconds="${s}">${window.SPY_TIME_LABEL(s)}</button>`
-  ).join("");
+  if (ctlMax) ctlMax.setSilent(N.max);
+  if (ctlTime) ctlTime.setSilent(N.seconds);
+  if (segSpy) segSpy.set(N.spies);
+  if (segRole) segRole.set(N.asPlayer);
+  $n("roleOut").textContent = N.asPlayer ? "بازیکن" : "داور";
+  $n("netMaxOut").textContent = window.SPY_FA(N.max);
+  $n("netSpiesOut").textContent = window.SPY_FA(N.spies);
+  $n("netTimeOut").textContent = window.SPY_TIME_LABEL(N.seconds);
 }
 
 function renderNetRole() {
@@ -761,37 +753,43 @@ function initOnline() {
     flash(done ? "لینک روم کپی شد ✓" : "لینک: " + url);
   });
 
-  $n("netRoleChips").addEventListener("click", (e) => {
-    const c = e.target.closest("[data-asplayer]");
-    if (!c || N.phase !== "lobby") return;
-    N.asPlayer = c.dataset.asplayer === "true";
-    N.myIndex = N.asPlayer ? 0 : -1;
-    N.role = null;
+  if (window.SPY_UI) {
+    segRole = window.SPY_UI.bindSeg("netRoleSeg", "asplayer", (v) => {
+      if (N.phase !== "lobby") {
+        segRole.set(N.asPlayer);
+        return;
+      }
+      N.asPlayer = v;
+      N.myIndex = v ? 0 : -1;
+      N.role = null;
+      renderNetChips();
+      renderLobby();
+      syncHostState();
+    });
+    ctlMax = window.SPY_UI.bindSlider({
+      range: "netMaxRange",
+      out: "netMaxOut",
+      minus: "netMaxMinus",
+      plus: "netMaxPlus",
+      label: window.SPY_FA,
+      onChange: (v) => { N.max = v; renderNetChips(); syncHostState(); },
+    });
+    segSpy = window.SPY_UI.bindSeg("netSpySeg", "nspies", (v) => {
+      N.spies = v;
+      renderNetChips();
+      syncHostState();
+    });
+    ctlTime = window.SPY_UI.bindSlider({
+      range: "netTimeRange",
+      out: "netTimeOut",
+      minus: "netTimeMinus",
+      plus: "netTimePlus",
+      label: window.SPY_TIME_LABEL,
+      onChange: (v) => { N.seconds = v; renderNetChips(); syncHostState(); },
+    });
+    // همگام‌سازی اولیهٔ کنترل‌ها با وضعیت
     renderNetChips();
-    renderLobby();
-    syncHostState();
-  });
-  $n("netMaxChips").addEventListener("click", (e) => {
-    const c = e.target.closest("[data-max]");
-    if (!c) return;
-    N.max = Math.max(3, +c.dataset.max);
-    renderNetChips();
-    syncHostState();
-  });
-  $n("netSpyChips").addEventListener("click", (e) => {
-    const c = e.target.closest("[data-nspies]");
-    if (!c) return;
-    N.spies = +c.dataset.nspies;
-    renderNetChips();
-    syncHostState();
-  });
-  $n("netTimeChips").addEventListener("click", (e) => {
-    const c = e.target.closest("[data-nseconds]");
-    if (!c) return;
-    N.seconds = +c.dataset.nseconds;
-    renderNetChips();
-    syncHostState();
-  });
+  }
 
   $n("netStartBtn").addEventListener("click", netStart);
   $n("netHideBtn").addEventListener("click", () => {

@@ -27,7 +27,11 @@ const state = {
 
 const TIMES = [30, 60, 90, 120, 180, 240, 300, 600];
 const timeLabel = (s) =>
-  s < 60 ? `${fa(s)} ثانیه` : s % 60 === 0 ? `${fa(s / 60)} دقیقه` : `${fa(s / 60)}٫${fa((s % 60) / 10)} دقیقه`;
+  s < 60
+    ? `${fa(s)} ثانیه`
+    : s % 60 === 0
+      ? `${fa(s / 60)} دقیقه`
+      : `${fa(Math.floor(s / 60))}٫${fa(Math.round((s % 60) / 6))} دقیقه`;
 
 const screens = {
   home: $("screen-home"),
@@ -54,53 +58,145 @@ const netOn = () => window.NET && window.NET.isActive();
 /* ---------------- صفحهٔ اول ---------------- */
 
 $("toOfflineBtn").addEventListener("click", () => {
-  renderDots();
-  renderSpyChips();
-  renderTimeChips();
+  initSetupControls();
   show("setup");
 });
 $("toOnlineBtn").addEventListener("click", () => show("online"));
 $("homeBtn").addEventListener("click", () => show("home"));
 $("homeBtn2").addEventListener("click", () => show("home"));
 
+/* ---------------- کامپوننت‌های تنظیمات ---------------- */
+
+/** اسلایدر + دکمه‌های −/+ + نمایش مقدار */
+function bindSlider(opts) {
+  const range = $(opts.range);
+  const out = $(opts.out);
+  const minus = $(opts.minus);
+  const plus = $(opts.plus);
+  const format = opts.label;
+  const paint = () => {
+    const min = +range.min, max = +range.max;
+    const pct = ((+range.value - min) / (max - min)) * 100;
+    const host = range.closest(".slider") || range.parentElement || range;
+    host.style.setProperty("--pct", pct + "%");
+    if (out) out.textContent = format ? format(+range.value) : fa(+range.value);
+    if (minus) minus.disabled = +range.value <= min;
+    if (plus) plus.disabled = +range.value >= max;
+  };
+  const set = (v) => {
+    const min = +range.min, max = +range.max, step = +range.step || 1;
+    const snapped = Math.round((v - min) / step) * step + min;
+    range.value = String(Math.min(max, Math.max(min, snapped)));
+    paint();
+    if (opts.onChange) opts.onChange(+range.value);
+  };
+  range.addEventListener("input", () => {
+    paint();
+    if (opts.onChange) opts.onChange(+range.value);
+  });
+  if (minus) minus.addEventListener("click", () => set(+range.value - (+range.step || 1)));
+  if (plus) plus.addEventListener("click", () => set(+range.value + (+range.step || 1)));
+  paint();
+  const setSilent = (v) => {
+    range.value = String(v);
+    paint();
+  };
+  return { set, setSilent, get: () => +range.value, paint };
+}
+
+/** گروه دکمه‌های هم‌اندازه (سگمنت) */
+function bindSeg(containerId, attr, onChange) {
+  const el = $(containerId);
+  el.addEventListener("click", (e) => {
+    const btn = e.target.closest(`[data-${attr}]`);
+    if (!btn || btn.disabled) return;
+    [...el.children].forEach((c) => c.classList.toggle("on", c === btn));
+    const v = btn.dataset[attr];
+    onChange(attr === "asplayer" ? v === "true" : +v, btn);
+  });
+  return {
+    set(v) {
+      [...el.children].forEach((c) =>
+        c.classList.toggle("on", attr === "asplayer" ? c.dataset[attr] === String(v) : +c.dataset[attr] === +v)
+      );
+    },
+    get() {
+      const on = el.querySelector(".on");
+      if (!on) return undefined;
+      return attr === "asplayer" ? on.dataset[attr] === "true" : +on.dataset[attr];
+    },
+  };
+}
+
+const maxSpies = (players) => Math.max(1, Math.floor(players / 2));
+
 /* ---------------- تنظیمات ---------------- */
 
-const maxSpies = () => Math.max(1, Math.floor(state.players / 2));
+let playersCtl, timeCtl, spySeg, setupReady = false;
 
-function renderDots() {
-  $("playersDots").innerHTML = Array.from(
-    { length: state.players },
-    () => "<i class='on'></i>"
-  ).join("");
-  $("playersOut").textContent = fa(state.players);
-  $("players").value = state.players;
-}
+function initSetupControls() {
+  if (setupReady) {
+    // فقط مقادیر را با وضعیت هم‌گام کن (دیگر شنوندهٔ تکراری نساز)
+    playersCtl.set(state.players);
+    timeCtl.set(state.seconds);
+    spySeg.set(state.spies);
+    $("spiesOut").textContent = fa(state.spies);
+    [...$("spySeg").children].forEach((c) => (c.disabled = +c.dataset.spy > maxSpies(state.players)));
+    return;
+  }
+  setupReady = true;
+  playersCtl = bindSlider({
+    range: "playersRange",
+    out: "playersOut",
+    minus: "playersMinus",
+    plus: "playersPlus",
+    onChange: (v) => {
+      state.players = v;
+      const max = maxSpies(v);
+      if (state.spies > max) {
+        state.spies = max;
+        spySeg.set(max);
+        $("spiesOut").textContent = fa(max);
+      }
+      [...$("spySeg").children].forEach((c) => (c.disabled = +c.dataset.spy > max));
+      saveSettings();
+    },
+  });
 
-function renderSpyChips() {
-  const max = maxSpies();
+  timeCtl = bindSlider({
+    range: "timeRange",
+    out: "timeOut",
+    minus: "timeMinus",
+    plus: "timePlus",
+    label: timeLabel,
+    onChange: (v) => {
+      state.seconds = v;
+      saveSettings();
+    },
+  });
+
+  spySeg = bindSeg("spySeg", "spy", (v) => {
+    state.spies = v;
+    $("spiesOut").textContent = fa(v);
+    saveSettings();
+  });
+
+  // بازگرداندن تنظیمات ذخیره‌شده
+  const max = maxSpies(state.players);
   if (state.spies > max) state.spies = max;
-  $("spyChips").innerHTML = Array.from({ length: max }, (_, i) => i + 1)
-    .map(
-      (n) =>
-        `<button type="button" class="chip ${n === state.spies ? "on" : ""}" data-spies="${n}">${fa(n)} جاسوس</button>`
-    )
-    .join("");
+  playersCtl.set(state.players);
+  timeCtl.set(state.seconds);
+  spySeg.set(state.spies);
   $("spiesOut").textContent = fa(state.spies);
-}
-
-function renderTimeChips() {
-  $("timeChips").innerHTML = TIMES.map(
-    (s) => `<button type="button" class="chip ${s === state.seconds ? "on" : ""}" data-seconds="${s}">${timeLabel(s)}</button>`
-  ).join("");
+  [...$("spySeg").children].forEach((c) => (c.disabled = +c.dataset.spy > maxSpies(state.players)));
 }
 
 function saveSettings() {
   try {
-    localStorage.setItem("spy-settings", JSON.stringify({
-      players: state.players,
-      spies: state.spies,
-      seconds: state.seconds,
-    }));
+    localStorage.setItem(
+      "spy-settings",
+      JSON.stringify({ players: state.players, spies: state.spies, seconds: state.seconds })
+    );
   } catch (e) { /* حالت ناشناس مرورگر */ }
 }
 
@@ -115,40 +211,9 @@ function loadSettings() {
   } catch (e) { /* تنظیمات خراب، پیش‌فرض */ }
 }
 
-$("players").addEventListener("input", (e) => {
-  state.players = +e.target.value;
-  renderDots();
-  renderSpyChips();
-  saveSettings();
-});
-
-document.querySelectorAll(".step-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const delta = +btn.dataset.delta;
-    state.players = Math.min(16, Math.max(3, state.players + delta));
-    renderDots();
-    renderSpyChips();
-    saveSettings();
-    buzz(8);
-  });
-});
-
-$("spyChips").addEventListener("click", (e) => {
-  const chip = e.target.closest("[data-spies]");
-  if (!chip) return;
-  state.spies = +chip.dataset.spies;
-  renderSpyChips();
-  saveSettings();
-  buzz(8);
-});
-
-$("timeChips").addEventListener("click", (e) => {
-  const chip = e.target.closest("[data-seconds]");
-  if (!chip) return;
-  state.seconds = +chip.dataset.seconds;
-  renderTimeChips();
-  saveSettings();
-  buzz(8);
+$("toOfflineBtn").addEventListener("click", () => {
+  initSetupControls();
+  show("setup");
 });
 
 /* ---------------- شروع دور ---------------- */
@@ -349,9 +414,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 loadSettings();
-renderDots();
-renderSpyChips();
-renderTimeChips();
+initSetupControls();
 $("wordCount").textContent = `${fa(WORDS.length)} کلمهٔ فارسی`;
 
 window.SPY_FA = fa;
@@ -359,6 +422,7 @@ window.showScreen = show;
 window.SPY_TIMES = TIMES;
 window.SPY_TIME_LABEL = timeLabel;
 window.SPY_DEBUG = { state, tick };
+window.SPY_UI = { bindSlider, bindSeg, fa, timeLabel };
 
 /* ---------------- نصب روی گوشی (PWA) ---------------- */
 
@@ -407,7 +471,7 @@ const reduceMotion =
 
 if (!reduceMotion) {
   document.addEventListener("pointerdown", (e) => {
-    const target = e.target.closest(".btn, .chip, .step-btn");
+    const target = e.target.closest(".btn, .seg-btn, .icon-btn");
     if (!target || target.disabled) return;
     const rect = target.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
