@@ -711,6 +711,17 @@ function shuffleArray(a) {
 function initOnline() {
   if (!$n("brokerInput")) return;
   if (!$n("brokerInput").value) $n("brokerInput").value = NET_BROKERS[0];
+
+  if (typeof mqtt === "undefined") {
+    $n("tabJoin").disabled = true;
+    $n("tabCreate").disabled = true;
+    $n("joinBtn").disabled = true;
+    $n("createBtn").disabled = true;
+    $n("codeInput").disabled = true;
+    $n("nameInput").disabled = true;
+    setStatus("❌ بازی آنلاین بارگذاری نشد؛ صفحه را دوباره باز کنید. بازی حضوری در دسترس است.");
+    return;
+  }
   try {
     const saved = localStorage.getItem("spy-name");
     if (saved) $n("nameInput").value = saved;

@@ -28,17 +28,24 @@
       <button class="btn primary big" id="toOfflineBtn">بازی حضوری — یک گوشی</button>
       <button class="btn net-alt big" id="toOnlineBtn">بازی آنلاین — هرکس با گوشی خودش</button>
 
-      <details class="how">
-        <summary>قوانین و روش بازی</summary>
-        <ol class="how-list">
-          <li>تعداد بازیکن‌ها و جاسوس‌ها را انتخاب کنید.</li>
-          <li>گوشی بین بازیکن‌ها می‌چرخد؛ هر نفر نقش خودش را می‌بیند و پنهان می‌کند.</li>
-          <li>همه صف‌بندی حرف می‌زنند تا جاسوس لو برود. نقش کسی را لو ندهید.</li>
-          <li>در پایان، «پایان و افشا» کلمهٔ واقعی و نام جاسوس‌ها را نشان می‌دهد.</li>
+      <div class="rules">
+        <h3 class="rules-title">بازی حضوری با یک گوشی</h3>
+        <ol class="rules-list">
+          <li>تعداد بازیکن و جاسوس را انتخاب کنید و بازی را شروع کنید.</li>
+          <li>گوشی بین بازیکن‌ها می‌چرخد؛ هر نفر «نقش من را ببین» را می‌زند و بعد از خواندن، «پنهان کن و نفر بعدی».</li>
+          <li>در پایانِ زمان، «پایان و افشا» کلمهٔ واقعی و شمارهٔ جاسوس‌ها را نشان می‌دهد.</li>
         </ol>
-      </details>
 
-      <p class="hint-line">در بازی آنلاین، میزبان یک «کد روم» می‌سازد و بقیه با گوشی خودشان به آن می‌پیوندند.</p>
+        <h3 class="rules-title">بازی آنلاین با گوشی هرکس</h3>
+        <ol class="rules-list">
+          <li>میزبان «ساخت روم» را می‌زند و یک <b>کد ۶ حرفی</b> می‌گیرد؛ می‌تواند کد را کپی یا لینک را مستقیم در تلگرام بفرستد.</li>
+          <li>بقیه «ورود به روم» را می‌زنند، کد را وارد می‌کنند و وارد لابی می‌شوند. میزبان می‌تواند خودش هم بازیکن باشد یا فقط داور بماند.</li>
+          <li>با «شروع بازی»، <b>هر گوشی فقط نقش خودش</b> را می‌بیند: غیرجاسوس کلمه، جاسوس راهنما.</li>
+          <li>تایمر روی همهٔ گوشی‌ها همگام است؛ میزبان با «پایان و افشا» کلمه و نام جاسوس‌ها را روی همه صفحه‌ها نشان می‌دهد.</li>
+        </ol>
+
+        <p class="rules-foot">در هر دو حالت، تا وقتی «پایان و افشا» زده نشود کلمه دیده نمی‌شود و نقش کسی را لو ندهید.</p>
+      </div>
     </div>
   </section>
 
@@ -154,7 +161,7 @@
 
       <div id="createPane" role="tabpanel" hidden>
         <p class="sub no-bottom">میزبان بازی می‌شود: تعداد جاسوس و زمان را خودش انتخاب می‌کند و کد روم را برای بقیه می‌فرستد.</p>
-        <button class="btn primary big" id="createBtn">ساخت روم جدید</button>
+        <button class="btn primary big" id="createBtn">ساخت روم و گرفتن کد</button>
       </div>
 
       <details class="adv">
@@ -269,7 +276,7 @@
 
 <footer class="site-foot">بازی جاسوس • بدون نصب، فقط در مرورگر • <span id="wordCount"></span></footer>
 
-<script src="https://unpkg.com/mqtt@5.10.4/dist/mqtt.min.js" defer></script>
+<script src="vendor/mqtt.min.js" defer></script>
 <script src="words.js" defer></script>
 <script src="app.js" defer></script>
 <script src="online.js" defer></script>

@@ -105,9 +105,38 @@ b, strong { font-weight: 700; }
   color: var(--muted);
 }
 
-/* ---------- روش بازی ---------- */
-.how { margin-top: 18px; text-align: right; }
-.how summary,
+/* ---------- کادر قوانین ---------- */
+.rules {
+  margin-top: 20px;
+  padding: 14px 14px 16px;
+  text-align: right;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.rules-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.rules-title + .rules-list { margin-top: 0; }
+.rules:not(:first-child) .rules-title { margin-top: 0; }
+.rules-title ~ .rules-title { margin-top: 16px; }
+.rules-list { margin: 0; padding-right: 18px; color: var(--muted); font-size: 12.5px; line-height: 2.05; }
+.rules-list li { margin-bottom: 2px; }
+.rules-list li::marker { color: var(--faint); }
+.rules-foot {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1.9;
+}
+
 .adv summary {
   cursor: pointer;
   color: var(--muted);
@@ -116,17 +145,7 @@ b, strong { font-weight: 700; }
   padding: 8px 0;
   list-style: none;
 }
-.how summary::marker, .adv summary::marker { display: none; }
-.how summary::before { content: "＋ "; }
-.how[open] summary::before { content: "－ "; }
-.how-list {
-  margin: 6px 18px 0 0;
-  padding: 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 2;
-}
-.how-list li::marker { color: var(--faint); }
+.adv summary::marker { display: none; }
 
 /* ---------- فرم ---------- */
 .field { margin-bottom: 20px; }
@@ -243,6 +262,7 @@ input[type="range"]::-moz-range-thumb {
   transition: background 0.15s, color 0.15s;
 }
 .tab.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+.tab:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .adv { margin-top: 14px; }
 .adv summary::before { content: "▾ "; }
