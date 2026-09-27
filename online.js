@@ -441,6 +441,9 @@ function wasKicked() {
   stopWatch();
   stopHelloLoop();
   setWaiting(false);
+  if (N.client) {
+    try { N.client.end(true); } catch (e) { /* بی‌اهمیت */ }
+  }
   window.showScreen("online");
   setStatus("❌ میزبان تو را از روم حذف کرد.");
   N.active = false;
@@ -614,6 +617,8 @@ function guestContacted() {
 }
 
 function onGuestMessage(topic, msg) {
+  // بعد از خروج/اخراج، پیام‌های سرگردان نباید ما را به صفحه‌ای برگردانند
+  if (!N.active && !N.connecting) return;
   const raw = msg.toString();
 
   if (topic === `${N.root}/host`) {
@@ -717,6 +722,9 @@ function realHostGone() {
   stopWatch();
   stopHelloLoop();
   setWaiting(false);
+  if (N.client) {
+    try { N.client.end(true); } catch (e) { /* بی‌اهمیت */ }
+  }
   window.showScreen("online");
   setStatus("❌ میزبان روم از دسترس خارج شد.");
   N.active = false;
