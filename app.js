@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const APP_VER = 23; // با هر انتشار، با VERSION سرویس‌ورکر و نسخهٔ فوتر یکی باشد
 const FA = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 const fa = (n) => String(n).replace(/\d/g, (d) => FA[+d]);
 
@@ -353,6 +354,26 @@ function renderResume() {
   if (btn) btn.hidden = !readOff();
 }
 
+/* پیام یک‌بارمصرف هر نسخه در صفحهٔ اصلی */
+function renderUpdateTip() {
+  try {
+    const tip = $("updateTip");
+    if (!tip) return;
+    const key = "spy-tip-v" + APP_VER;
+    if (localStorage.getItem(key)) {
+      tip.hidden = true;
+      return;
+    }
+    tip.hidden = false;
+    $("updateTipClose").addEventListener("click", () => {
+      try {
+        localStorage.setItem(key, "1");
+      } catch (e) { /* حالت خصوصی */ }
+      tip.hidden = true;
+    });
+  } catch (e) { /* نادیده */ }
+}
+
 /* ---------------- شروع دور ---------------- */
 
 function newRound() {
@@ -601,6 +622,7 @@ document.addEventListener("visibilitychange", () => {
 loadSettings();
 initSetupControls();
 renderResume();
+renderUpdateTip();
 $("wordCount").textContent = `${fa(WORDS.length)} کلمهٔ فارسی`;
 
 window.SPY_FA = fa;

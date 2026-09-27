@@ -19,6 +19,7 @@ const N = {
   broker: "",
   seenAt: {},
   helloLoop: null,
+  kickedIds: [],
   lastState: 0,
   watchId: null,
   heartId: null,
@@ -148,6 +149,7 @@ function saveHostSnap() {
         endsAt: N.endsAt,
         timeUp: N.timeUp,
         role: N.role,
+        kickedIds: N.kickedIds || [],
         ts: Date.now(),
       })
     );
@@ -305,6 +307,7 @@ async function hostCreate() {
   N.spyStreak = {};
   N.lastWordIdx = -1;
   N.seenAt = {};
+  N.kickedIds = [];
   clearSession();
 
   let code = null;
@@ -389,6 +392,11 @@ function activeSeats() {
 }
 
 function addGuest(data) {
+  // اخراج‌شده‌ها برنمی‌گردند
+  if (N.kickedIds.indexOf(data.id) !== -1) {
+    pub(`${N.root}/to/${data.id}`, { t: "kicked", from: N.myId }, 1);
+    return;
+  }
   const existing = findIn(N.players, (x) => x.id === data.id);
   if (!existing && seatList().length >= N.max) {
     pub(`${N.root}/to/${data.id}`, { t: "full", from: N.myId });
@@ -421,6 +429,38 @@ function dupName(name, selfId) {
   return n;
 }
 
+/* ---------------- حذف بازیکن توسط میزبان ---------------- */
+
+function kickPlayer(id) {
+  if (!N.isHost || N.phase !== "lobby" || !id || id === N.myId) return;
+  const p = findIn(N.players, (x) => x.id === id);
+  if (!p) return;
+  const ok = typeof window.confirm === "function" ? window.confirm(`«${p.name}» از روم حذف شود؟`) : true;
+  if (!ok) return;
+  N.players = N.players.filter((x) => x.id !== id);
+  if (N.kickedIds.indexOf(id) === -1) N.kickedIds.push(id);
+  pub(`${N.root}/to/${id}`, { t: "kicked", from: N.myId }, 1);
+  saveHostSnap();
+  syncHostState();
+}
+
+function wasKicked() {
+  stopNetTick();
+  stopWatch();
+  stopHelloLoop();
+  setWaiting(false);
+  window.showScreen("online");
+  setStatus("❌ میزبان تو را از روم حذف کرد.");
+  N.active = false;
+  N.connecting = false;
+  N.client = null;
+  N.hostId = null;
+  N.lastState = 0;
+  $n("joinBtn").disabled = false;
+  clearSession();
+  renderRejoin();
+}
+
 function sendWelcome(p, role) {
   const payload = {
     t: "welcome",
@@ -445,7 +485,7 @@ function syncHostState() {
     t: "state",
     from: N.myId,
     phase: N.phase,
-    players: seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host })),
+    players: seatList().map((p) => ({ i: p.i, id: p.id || null, name: p.name, host: !!p.host })),
     asPlayer: N.asPlayer,
     minPlayers: MIN_PLAYERS,
     max: N.max,
@@ -603,8 +643,12 @@ function onGuestMessage(topic, msg) {
   }
   if (!data || data.from === N.myId) return;
 
-  if (data.t === "full") {
-    N.active = false;
+  if (data.t === "kicked" && topic === `${N.root}/to/${N.myId}`) {
+    wasKicked();
+    return;
+  }
+
+  if (data.t === "full") {    N.active = false;
     N.connecting = false;
     if (N.finishHello) {
       try { N.finishHello(); } catch (e) { /* بی‌اهمیت */ }
@@ -730,6 +774,7 @@ async function hostRecover() {
   N.endsAt = s.endsAt || 0;
   N.timeUp = !!s.timeUp;
   N.role = s.role || null;
+  N.kickedIds = s.kickedIds || [];
   N.myIndex = N.asPlayer ? 0 : -1;
   N.active = true;
   N.seenAt = {};
@@ -982,10 +1027,11 @@ function renderLobby() {
       : "شما فقط میزبانید و نقشی نمی‌گیرید؛ دکمه‌های شروع و افشا با شماست."
     : "";
   const seats = seatList();
+  const canKick = N.isHost && N.phase === "lobby";
   $n("lobbySeats").innerHTML = seats
     .map(
       (p) =>
-        `<span class="seat with-name ${p.i === N.myIndex ? "now" : "seen"}"><b>${window.SPY_FA(p.i + 1)}${p.host ? " 👑" : ""}</b><i>${esc(p.name)}</i></span>`
+        `<span class="seat with-name ${p.i === N.myIndex ? "now" : "seen"}${canKick && p.id && p.id !== N.myId ? " kickable" : ""}"${p.id ? ` data-pid="${esc(p.id)}"` : ""}><b>${window.SPY_FA(p.i + 1)}${p.host ? " 👑" : ""}</b><i>${esc(p.name)}</i></span>`
     )
     .join("") +
     // کارت «میزبان» فقط وقتی که میزبان داور است؛ در حالت بازیکن، خودش
@@ -998,6 +1044,8 @@ function renderLobby() {
   // سرور متصل را نشان بده تا اگر میزبان و مهمان روی سرورهای متفاوت‌اند معلوم شود
   const bn = $n("brokerNote");
   if (bn) bn.textContent = N.broker ? "server: " + shortBroker(N.broker) : "";
+  const kh = $n("kickHint");
+  if (kh) kh.hidden = !(N.isHost && N.phase === "lobby" && seatList().length > 1);
   if (N.isHost) {
     const btn = $n("netStartBtn");
     const ready = n >= MIN_PLAYERS;
@@ -1233,6 +1281,13 @@ function initOnline() {
     guestJoin(s.code, s.myId);
   });
   $n("recoverBtn").addEventListener("click", hostRecover);
+  // ضربه روی کارت بازیکن در لابی (فقط میزبان): حذف
+  $n("lobbySeats").addEventListener("click", (e) => {
+    if (!N.isHost || N.phase !== "lobby") return;
+    const t = e.target && e.target.closest ? e.target.closest("[data-pid]") : null;
+    if (!t || !t.dataset || !t.dataset.pid) return;
+    kickPlayer(t.dataset.pid);
+  });
   renderRejoin();
   renderRecover();
   $n("codeInput").addEventListener("input", (e) => {

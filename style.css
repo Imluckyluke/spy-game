@@ -442,6 +442,8 @@ summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; 
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.8;
 }
 .seat.master { background: transparent; border: 1px dashed var(--line-2); }
+.seat.kickable { cursor: pointer; border: 1px dashed var(--line-2); }
+.seat.kickable:hover { background: var(--spy-container); color: var(--spy-soft); }
 
 /* ---------- نقش ---------- */
 .role-card { background: var(--surface-1); transition: background 0.25s; }
@@ -544,6 +546,34 @@ summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; 
 .js-on .js-dead-note { display: block; }
 .app-ok .js-dead-note { display: none; }
 .js-dead-note.always { display: block; }
+
+/* ---------- پیام یک‌بارمصرف صفحهٔ اصلی ---------- */
+.notice {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  border: 1px solid var(--line-2);
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.95;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.notice-btn {
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: 0;
+  border-radius: var(--r-full);
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  padding: 8px 18px;
+  cursor: pointer;
+}
 
 /* ---------- نوار انتظار میزبان ---------- */
 .wait-bar {
