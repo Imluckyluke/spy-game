@@ -17,6 +17,8 @@ const N = {
   waitingHost: false,
   hostId: null,
   broker: "",
+  seenAt: {},
+  helloLoop: null,
   lastState: 0,
   watchId: null,
   heartId: null,
@@ -302,6 +304,7 @@ async function hostCreate() {
   N.active = true;
   N.spyStreak = {};
   N.lastWordIdx = -1;
+  N.seenAt = {};
   clearSession();
 
   let code = null;
@@ -361,6 +364,7 @@ function onHostMessage(topic, msg) {
     return;
   }
   if (!data || data.from === N.myId) return;
+  if (data.from) N.seenAt[data.from] = Date.now();
 
   if (topic === `${N.root}/join` && data.t === "hello") {
     addGuest(data);
@@ -477,6 +481,11 @@ async function guestJoin(code, reuseId) {
     return;
   }
   if (N.connecting || N.active) return; // جلوگیری از ورود دوباره با دو بار زدن دکمه
+  if (!reuseId) {
+    // ورود دستی به همان روم قبلی با شناسهٔ قبلی تا صندلی تکراری ساخته نشود
+    const s = readSession();
+    if (s && s.code === code) reuseId = s.myId;
+  }
   N.connecting = true;
   $n("joinBtn").disabled = true;
   renderRejoin();
@@ -544,7 +553,11 @@ async function guestJoin(code, reuseId) {
     N.phase = "idle";
     $n("joinBtn").disabled = false;
     window.showScreen("online");
-    setStatus("❌ کد روم پیدا نشد. اگه کد درسته، یعنی به سرور میزبان نرسیدیم؛ دوباره تلاش کن.");
+    setStatus(
+      "❌ کد روم پیدا نشد. اگه کد درسته، یعنی به سرور میزبان نرسیدیم" +
+        (N.broker ? " (سرور تو: " + shortBroker(N.broker) + ")" : "") +
+        "؛ دوباره تلاش کن."
+    );
     renderRejoin();
   }, 12000);
 }
@@ -563,6 +576,7 @@ function guestContacted() {
     setStatus("");
     saveSession();
     startWatch();
+    startHelloLoop();
     openLobby("مهمان");
   }
 }
@@ -665,6 +679,7 @@ function onGuestMessage(topic, msg) {
 function realHostGone() {
   stopNetTick();
   stopWatch();
+  stopHelloLoop();
   setWaiting(false);
   window.showScreen("online");
   setStatus("❌ میزبان روم از دسترس خارج شد.");
@@ -717,6 +732,10 @@ async function hostRecover() {
   N.role = s.role || null;
   N.myIndex = N.asPlayer ? 0 : -1;
   N.active = true;
+  N.seenAt = {};
+  N.players.forEach((p) => {
+    N.seenAt[p.id] = Date.now();
+  });
   setWaiting(false);
 
   const free = await claimCode(client, N.root, N.myId);
@@ -846,7 +865,13 @@ const DEATH_MS = 70000;
 function startHeartbeat() {
   stopHeartbeat();
   N.heartId = setInterval(() => {
-    if (N.isHost && N.client && N.phase !== "idle") syncHostState();
+    if (!N.isHost || !N.client || N.phase === "idle") return;
+    // هرس مهمان‌هایی که خیلی وقت است خبری ازشان نیست (لفت داده‌اند و برنگشته‌اند)
+    const now = Date.now();
+    const before = N.players.length;
+    N.players = N.players.filter((p) => (N.seenAt[p.id] || 0) > now - 120000);
+    if (N.players.length !== before) saveHostSnap();
+    syncHostState();
   }, HEART_MS);
 }
 
@@ -878,12 +903,27 @@ function setWaiting(on) {
   if (bar) bar.hidden = !on;
 }
 
+/* سلام دوره‌ای مهمان (هر ۲۰ ثانیه) تا میزبان بفهمد هنوز هستی و صندلیت را نگه دارد */
+function startHelloLoop() {
+  stopHelloLoop();
+  N.helloLoop = setInterval(() => {
+    if (!N.active || N.isHost || !N.client || N.phase === "idle") return;
+    pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName }, 1);
+  }, 20000);
+}
+
+function stopHelloLoop() {
+  if (N.helloLoop) clearInterval(N.helloLoop);
+  N.helloLoop = null;
+}
+
 /* ---------------- ترک روم ---------------- */
 
 function netLeave() {
   stopNetTick();
   stopHeartbeat();
   stopWatch();
+  stopHelloLoop();
   setWaiting(false);
   if (N.client) {
     try {
