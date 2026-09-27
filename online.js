@@ -12,6 +12,8 @@ const NET_BROKERS = [
 
 const N = {
   active: false,
+  connecting: false,
+  finishHello: null,
   client: null,
   isHost: false,
   code: "",
@@ -62,6 +64,52 @@ const brokerList = () => {
 const setStatus = (msg) => {
   $n("netStatus").textContent = msg || "";
 };
+
+/* ---------------- نشست مهمان (اتصال مجدد) ----------------
+   کد روم + شناسهٔ ثابت بازیکن ذخیره می‌شود تا بعد از قطعی اینترنت یا
+   بسته شدن صفحه، با همان صندلی و همان نقش به روم برگردد. */
+
+const SESSION_KEY = "spy-session";
+const SESSION_TTL = 3 * 3600 * 1000;
+let rejoinSession = null;
+
+function saveSession() {
+  try {
+    if (N.isHost) return; // بازیابی روم میزبان پشتیبانی نمی‌شود
+    if (!N.code || !N.myId) return;
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({ code: N.code, myId: N.myId, myName: N.myName, ts: Date.now() })
+    );
+  } catch (e) { /* حالت خصوصی */ }
+}
+
+function readSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !s.code || !s.myId || Date.now() - (s.ts || 0) > SESSION_TTL) return null;
+    return s;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearSession() {
+  rejoinSession = null;
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (e) { /* حالت خصوصی */ }
+}
+
+function renderRejoin() {
+  const btn = $n("rejoinBtn");
+  if (!btn) return;
+  rejoinSession = !N.active && !N.connecting ? readSession() : null;
+  btn.hidden = !rejoinSession;
+  if (rejoinSession) btn.textContent = `🔄 بازگشت به روم ${rejoinSession.code}`;
+}
 
 function findIn(arr, fn) {
   for (let i = 0; i < arr.length; i++) if (fn(arr[i], i)) return arr[i];
@@ -144,6 +192,7 @@ async function hostCreate() {
   N.active = true;
   N.spyStreak = {};
   N.lastWordIdx = -1;
+  clearSession();
 
   let code = null;
   for (let attempt = 0; attempt < 6 && !code; attempt++) {
@@ -305,54 +354,98 @@ function giveRole(i) {
 
 /* ---------------- ورود به روم (مهمان) ---------------- */
 
-async function guestJoin(code) {
+async function guestJoin(code, reuseId) {
   code = (code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   if (code.length !== 6) {
-    setStatus("❌ کد روم باید ۶ حرف باشد.");
+    setStatus("❌ کد روم باید ۶ کاراکتر باشد.");
     return;
   }
-  setStatus("در حال اتصال…");
+  if (N.connecting || N.active) return; // جلوگیری از ورود دوباره با دو بار زدن دکمه
+  N.connecting = true;
+  $n("joinBtn").disabled = true;
+  renderRejoin();
+  setStatus("در حال اتصال به روم…");
   let client;
   try {
     client = await connectAny();
   } catch (e) {
+    N.connecting = false;
+    $n("joinBtn").disabled = false;
     setStatus("❌ اتصال به سرور ممکن نشد.");
+    renderRejoin();
     return;
   }
+
+  const sayHello = () => {
+    if (N.client === client && N.connecting) {
+      pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName });
+    }
+  };
 
   N.client = client;
   N.isHost = false;
   N.code = code;
   N.root = `jasoos/${code.toLowerCase()}`;
-  N.myId = uid();
+  N.myId = reuseId || uid();
   N.myName = readName();
   N.myIndex = -1;
   N.players = [];
   N.phase = "lobby";
   N.role = null;
-  N.active = true;
+  N.word = null;
+  N.spyIdx = [];
+  N.endsAt = 0;
+  N.timeUp = false;
+  stopNetTick();
 
   client.on("message", onGuestMessage);
   client.on("connect", () => {
-    if (!N.client) return;
+    if (N.client !== client) return;
+    // اتصال دوباره (بعد از قطعی اینترنت): خودمان را دوباره معرفی می‌کنیم تا میزبان نقش را بفرستد
     pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName });
   });
   client.subscribe(`${N.root}/state`);
   client.subscribe(`${N.root}/to/${N.myId}`);
   client.subscribe(`${N.root}/host`);
-  openLobby("مهمان");
-  setStatus("");
-  pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName });
+  // عمداً هنوز وارد لابی نمی‌شویم: اول باید میزبان جواب بدهد تا با کد
+  // اشتباه وارد روم خیالی نشویم. با اولین welcome لابی باز می‌شود.
+  sayHello();
+  const helloTimer = setInterval(sayHello, 2000);
+  N.finishHello = () => clearInterval(helloTimer);
 
   setTimeout(() => {
-    if (N.phase === "lobby" && N.myIndex === -1) {
-      N.active = false;
-      if (N.client) N.client.end(true);
-      N.client = null;
-      window.showScreen("online");
-      setStatus("❌ کد روم پیدا نشد؛ مطمئن شو درست وارد کرده‌ای.");
+    if (N.finishHello) {
+      try { N.finishHello(); } catch (e) { /* بی‌اهمیت */ }
+      N.finishHello = null;
     }
+    if (!N.connecting || N.client !== client) return;
+    // هنوز هیچ خبری از میزبان نیست: چنین رومی وجود ندارد (یا میزبان رفته)
+    try { client.end(true); } catch (e) { /* بی‌اهمیت */ }
+    N.client = null;
+    N.active = false;
+    N.connecting = false;
+    N.phase = "idle";
+    $n("joinBtn").disabled = false;
+    window.showScreen("online");
+    setStatus("❌ کد روم پیدا نشد؛ مطمئن شو درست وارد کرده‌ای.");
+    renderRejoin();
   }, 9000);
+}
+
+// تماس میزبان برقرار شد: پایان حالت «در حال اتصال» و ورود به لابی/بازی
+function guestContacted() {
+  if (N.finishHello) {
+    try { N.finishHello(); } catch (e) { /* بی‌اهمیت */ }
+    N.finishHello = null;
+  }
+  if (N.connecting) {
+    N.connecting = false;
+    N.active = true;
+    $n("joinBtn").disabled = false;
+    setStatus("");
+    saveSession();
+    openLobby("مهمان");
+  }
 }
 
 function onGuestMessage(topic, msg) {
@@ -373,19 +466,30 @@ function onGuestMessage(topic, msg) {
 
   if (data.t === "full") {
     N.active = false;
+    N.connecting = false;
+    if (N.finishHello) {
+      try { N.finishHello(); } catch (e) { /* بی‌اهمیت */ }
+      N.finishHello = null;
+    }
     if (N.client) N.client.end(true);
     N.client = null;
+    $n("joinBtn").disabled = false;
+    clearSession();
     window.showScreen("online");
     setStatus("❌ این روم پر است؛ به یک روم دیگر بپیوندید.");
+    renderRejoin();
     return;
   }
 
   if (data.t === "welcome" && topic === `${N.root}/to/${N.myId}`) {
+    guestContacted();
     N.myIndex = data.you;
     N.max = data.max || N.max;
     N.spies = data.spies || N.spies;
     N.seconds = data.seconds || N.seconds;
-    if (data.kind) {
+    // نقش تازه فقط وقتی نشان داده می‌شود که وسط بازی نباشیم؛ وگرنه همان نقش
+    // قبلی را داریم و پریدن به صفحهٔ نقش وسط گفت‌وگو آزاردهنده است.
+    if (data.kind && N.phase !== "play" && N.phase !== "reveal") {
       N.role = { kind: data.kind, word: data.word, hint: data.hint };
       N.phase = "role";
       renderNetRole();
@@ -432,7 +536,11 @@ function hostGone() {
   window.showScreen("online");
   setStatus("❌ میزبان روم از دسترس خارج شد.");
   N.active = false;
+  N.connecting = false;
   N.client = null;
+  $n("joinBtn").disabled = false;
+  clearSession();
+  renderRejoin();
 }
 
 /* ---------------- شروع و افشا (میزبان) ---------------- */
@@ -528,6 +636,7 @@ function netLeave() {
   }
   N.client = null;
   N.active = false;
+  N.connecting = false;
   N.isHost = false;
   N.players = [];
   N.role = null;
@@ -535,7 +644,9 @@ function netLeave() {
   N.phase = "idle";
   N.myIndex = -1;
   setStatus("");
+  clearSession();
   window.showScreen("online");
+  renderRejoin();
 }
 
 /* ---------------- نمایش ---------------- */
@@ -806,6 +917,14 @@ function initOnline() {
   $n("tabCreate").addEventListener("click", () => switchPane(false));
   $n("createBtn").addEventListener("click", hostCreate);
   $n("joinBtn").addEventListener("click", () => guestJoin($n("codeInput").value));
+  $n("rejoinBtn").addEventListener("click", () => {
+    const s = rejoinSession;
+    if (!s) return;
+    $n("nameInput").value = s.myName || "";
+    switchPane(true);
+    guestJoin(s.code, s.myId);
+  });
+  renderRejoin();
   $n("codeInput").addEventListener("input", (e) => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
   });
