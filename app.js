@@ -19,7 +19,7 @@ function showErr(msg) {
   } catch (e) { /* آخر خط */ }
 }
 window.addEventListener("error", (e) => {
-  showErr("خطا: " + (e.message || "نامشخص") + " — از این پیام عکس بگیر و برای سازنده بفرست.");
+  showErr("خطا (سطر " + (e.lineno || "?") + "): " + (e.message || "نامشخص") + " — از این پیام عکس بگیر و برای سازنده بفرست.");
 });
 // علامت «اسکریپت اصلی بالا آمد» برای مخفی شدن پیام js-dead-note
 try {
@@ -85,12 +85,12 @@ function drawSpiesFairFrom(seats, spyCount, streak) {
     rest.sort((a, b) => (streak[a] || 0) - (streak[b] || 0)); // مرتب‌سازی پایدار: شانس مساوی بین هم‌سابقه‌ها
     pool = eligible.concat(rest);
   }
-  return new Set(secureShuffle(pool).slice(0, n));
+  return secureShuffle(pool).slice(0, n);
 }
 
 function bumpStreak(streak, seats, spySet) {
   seats.forEach((i) => {
-    streak[i] = spySet.has(i) ? (streak[i] || 0) + 1 : 0;
+    streak[i] = spySet.indexOf(i) !== -1 ? (streak[i] || 0) + 1 : 0;
   });
 }
 
@@ -107,9 +107,9 @@ const state = {
   seconds: 120,
   word: null,
   lastWordIdx: -1,
-  spySet: new Set(),
+  spySet: [],
   spyStreak: {},
-  seen: new Set(),
+  seen: [],
   turn: 0,
   timeLeft: 120,
   timeUp: false,
@@ -139,7 +139,7 @@ const screens = {
 };
 
 function show(name) {
-  Object.values(screens).forEach((s) => s.classList.remove("is-active"));
+  Object.keys(screens).forEach((k) => screens[k].classList.remove("is-active"));
   const el = screens[name];
   if (el) el.classList.add("is-active");
   window.scrollTo({ top: 0 });
@@ -298,7 +298,7 @@ function loadSettings() {
     if (!raw) return;
     const s = JSON.parse(raw);
     if (s.players >= 3 && s.players <= 16) state.players = s.players;
-    if (TIMES.includes(s.seconds)) state.seconds = s.seconds;
+    if (TIMES.indexOf(s.seconds) !== -1) state.seconds = s.seconds;
     if (s.spies >= 1) state.spies = s.spies;
   } catch (e) { /* تنظیمات خراب، پیش‌فرض */ }
 }
@@ -313,10 +313,11 @@ function newRound() {
   const picked = pickWordAvoidRepeat(state.lastWordIdx);
   state.lastWordIdx = picked.idx;
   state.word = picked.word;
-  const seats = Array.from({ length: state.players }, (_, i) => i);
+  const seats = [];
+  for (let i = 0; i < state.players; i++) seats.push(i);
   state.spySet = drawSpiesFairFrom(seats, state.spies, state.spyStreak);
   bumpStreak(state.spyStreak, seats, state.spySet);
-  state.seen = new Set();
+  state.seen = [];
   state.turn = 0;
   showTurn();
 }
@@ -328,11 +329,14 @@ function showTurn() {
 }
 
 function renderSeats(el, now) {
-  el.innerHTML = Array.from({ length: state.players }, (_, i) => {
-    const cls = i === now ? "seat now" : state.seen.has(i) ? "seat seen" : "seat";
-    const mark = i === now ? " 👈" : state.seen.has(i) ? " ✔" : "";
-    return `<span class="${cls}">${fa(i + 1)}${mark}</span>`;
-  }).join("");
+  let html = "";
+  for (let i = 0; i < state.players; i++) {
+    const seenIt = state.seen.indexOf(i) !== -1;
+    const cls = i === now ? "seat now" : seenIt ? "seat seen" : "seat";
+    const mark = i === now ? " 👈" : seenIt ? " ✔" : "";
+    html += `<span class="${cls}">${fa(i + 1)}${mark}</span>`;
+  }
+  el.innerHTML = html;
 }
 
 /* ---------------- نقش هر نفر ---------------- */
@@ -344,7 +348,7 @@ $("startBtn").addEventListener("click", () => {
 
 $("peekBtn").addEventListener("click", () => {
   const i = state.turn;
-  const isSpy = state.spySet.has(i);
+  const isSpy = state.spySet.indexOf(i) !== -1;
   const card = $("roleCard");
   card.classList.toggle("is-spy", isSpy);
   card.classList.toggle("is-agent", !isSpy);
@@ -372,7 +376,7 @@ $("peekBtn").addEventListener("click", () => {
 });
 
 $("hideBtn").addEventListener("click", () => {
-  state.seen.add(state.turn);
+  state.seen.push(state.turn);
   state.turn += 1;
   if (state.turn < state.players) showTurn();
   else startTalk();
@@ -457,7 +461,7 @@ $("revealBtn").addEventListener("click", () => {
 /* ---------------- افشا ---------------- */
 
 function reveal() {
-  const spies = [...state.spySet].sort((a, b) => a - b);
+  const spies = state.spySet.slice().sort((a, b) => a - b);
   $("revealWord").textContent = state.word.w;
   $("revealList").innerHTML =
     spies

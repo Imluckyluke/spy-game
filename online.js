@@ -43,8 +43,11 @@ const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const $n = (id) => document.getElementById(id);
 const NET_RING = 2 * Math.PI * 52;
 
-const rand = (n) =>
-  Array.from({ length: n }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
+const rand = (n) => {
+  let s = "";
+  for (let i = 0; i < n; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return s;
+};
 const uid = () => Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -59,6 +62,11 @@ const brokerList = () => {
 const setStatus = (msg) => {
   $n("netStatus").textContent = msg || "";
 };
+
+function findIn(arr, fn) {
+  for (let i = 0; i < arr.length; i++) if (fn(arr[i], i)) return arr[i];
+  return undefined;
+}
 
 /* ---------------- اتصال ---------------- */
 
@@ -197,7 +205,7 @@ function onHostMessage(topic, msg) {
     return;
   }
   if (topic === `${N.root}/ping` && data.t === "ping") {
-    const p = N.players.find((x) => x.id === data.id);
+    const p = findIn(N.players, (x) => x.id === data.id);
     if (p) sendWelcome(p);
   }
 }
@@ -213,7 +221,7 @@ function activeSeats() {
 }
 
 function addGuest(data) {
-  const existing = N.players.find((x) => x.id === data.id);
+  const existing = findIn(N.players, (x) => x.id === data.id);
   if (!existing && seatList().length >= N.max) {
     pub(`${N.root}/to/${data.id}`, { t: "full", from: N.myId });
     return;
@@ -282,14 +290,14 @@ function syncHostState() {
     msg.word = N.word.w;
     msg.hint = N.word.h;
     msg.spyIdx = N.spyIdx;
-    msg.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.includes(p.i) }));
+    msg.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.indexOf(p.i) !== -1 }));
   }
   pub(`${N.root}/state`, msg);
   if (N.isHost) renderLobby();
 }
 
 function giveRole(i) {
-  const isSpy = N.spyIdx.includes(i);
+  const isSpy = N.spyIdx.indexOf(i) !== -1;
   return isSpy
     ? { kind: "spy", word: N.word.w, hint: N.word.h }
     : { kind: "agent", word: N.word.w, hint: N.word.h };
@@ -351,7 +359,7 @@ function onGuestMessage(topic, msg) {
   const raw = msg.toString();
 
   if (topic === `${N.root}/host`) {
-    if (raw.startsWith("bye:")) hostGone();
+    if (raw.indexOf("bye:") === 0) hostGone();
     return;
   }
 
@@ -443,7 +451,7 @@ function netStart() {
   const count = Math.max(1, Math.min(N.spies, Math.floor(seats.length / 2)));
   N.spyIdx = drawSpiesFairFrom(seats, count, N.spyStreak);
   seats.forEach((i) => {
-    N.spyStreak[i] = N.spyIdx.includes(i) ? (N.spyStreak[i] || 0) + 1 : 0;
+    N.spyStreak[i] = N.spyIdx.indexOf(i) !== -1 ? (N.spyStreak[i] || 0) + 1 : 0;
   });
   N.phase = "role";
   N.endsAt = 0;
@@ -488,7 +496,7 @@ function netReveal() {
   N.phase = "reveal";
   N.endsAt = 0;
   N.timeUp = false;
-  N.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.includes(p.i) }));
+  N.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.indexOf(p.i) !== -1 }));
   stopNetTick();
   syncHostState();
   renderNetReveal();
@@ -674,12 +682,12 @@ function renderNetReveal() {
   $n("revealWord").textContent = N.word ? N.word.w : "";
   const seats = seatList();
   const spyNames = N.spyIdx.map((i) => {
-    const p = seats.find((x) => x.i === i);
+    const p = findIn(seats, (x) => x.i === i);
     return p ? p.name : "بازیکن " + window.SPY_FA(i + 1);
   });
   $n("revealList").innerHTML =
     N.spyIdx.map((i) => {
-      const p = seats.find((x) => x.i === i);
+      const p = findIn(seats, (x) => x.i === i);
       const label = p ? esc(p.name) : window.SPY_FA(i + 1);
       return `<span class="reveal-tag spy">🕵️ ${label} — جاسوس</span>`;
     }).join("") +
