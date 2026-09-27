@@ -685,7 +685,9 @@ function renderLobby() {
         `<span class="seat with-name ${p.i === N.myIndex ? "now" : "seen"}"><b>${window.SPY_FA(p.i + 1)}${p.host ? " 👑" : ""}</b><i>${esc(p.name)}</i></span>`
     )
     .join("") +
-    (N.isHost
+    // کارت «میزبان» فقط وقتی که میزبان داور است؛ در حالت بازیکن، خودش
+    // صندلی ۱ را دارد و کارت دوم تکراری می‌شد.
+    (N.isHost && !N.asPlayer
       ? `<span class="seat with-name master"><b>🎯</b><i>${esc(N.myName)} (میزبان)</i></span>`
       : "");
   const n = seatList().length;
