@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const APP_VER = 25; // با هر انتشار، با VERSION سرویس‌ورکر و نسخهٔ فوتر یکی باشد
+const APP_VER = 26; // با هر انتشار، با VERSION سرویس‌ورکر و نسخهٔ فوتر یکی باشد
 const FA = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 const fa = (n) => String(n).replace(/\d/g, (d) => FA[+d]);
 
@@ -624,6 +624,9 @@ initSetupControls();
 renderResume();
 renderUpdateTip();
 $("wordCount").textContent = `${fa(WORDS.length)} کلمهٔ فارسی`;
+// نسخهٔ فوتر را کدِ در حال اجرا می‌نویسد تا با نسخهٔ واقعی یکی باشد
+// (فوترِ داخل HTML ممکن است از JSی که اجرا می‌شود تازه‌تر باشد)
+$("appVer").textContent = `نسخه ${fa(APP_VER)}`;
 
 window.SPY_FA = fa;
 window.showScreen = show;
