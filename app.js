@@ -642,10 +642,23 @@ function showUpdateBar() {
   bar.innerHTML =
     '<span>نسخهٔ جدید آماده است</span><button type="button" class="update-btn">به‌روزرسانی</button>';
   bar.querySelector("button").addEventListener("click", () => {
+    // اول صبر می‌کنیم سرویس‌ورکر جدید کنترل را بگیرد، بعد رفرش؛ وگرنه
+    // ممکن است با فایل‌های نصفه‌نیمهٔ قدیمی بالا بیاید
+    const go = () => location.reload();
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      let done = false;
+      const finish = () => {
+        if (!done) {
+          done = true;
+          setTimeout(go, 300);
+        }
+      };
+      navigator.serviceWorker.addEventListener("controllerchange", finish);
+      setTimeout(finish, 2500);
       navigator.serviceWorker.controller.postMessage("skip-waiting");
+    } else {
+      go();
     }
-    location.reload();
   });
   document.body.appendChild(bar);
 }
