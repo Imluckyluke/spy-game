@@ -61,8 +61,11 @@ const esc = (s) =>
 
 const brokerList = () => {
   const custom = ($n("brokerInput") && $n("brokerInput").value.trim()) || "";
-  const list = [...NET_BROKERS];
-  if (custom) list.unshift(custom);
+  const list = [];
+  // حذف تکراری‌ها (مقدار پیش‌فرض کادر همان سرور اول است وگرنه دو بار شمرده می‌شد)
+  [custom].concat(NET_BROKERS).forEach((u) => {
+    if (u && list.indexOf(u) === -1) list.push(u);
+  });
   return list;
 };
 

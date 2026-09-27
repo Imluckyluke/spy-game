@@ -1,5 +1,7 @@
 /* سرویس‌ورکر بازی جاسوس — کارکرد آفلاین و نصب روی گوشی */
-const VERSION = "v17";
+/* نسخهٔ انتشار: هنگام انتشار نسخهٔ جدید، عدد VERSION و «نسخهٔ فوتر» در index.html را با هم بالا ببر */
+/* نکته: رویدادی به نام installed وجود ندارد؛ خبر نسخهٔ جدید در activate فرستاده می‌شود */
+const VERSION = "v18";
 const CACHE = `jasoos-${VERSION}`;
 
 const SHELL = [
@@ -31,18 +33,20 @@ self.addEventListener("activate", (e) => {
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      // خبر «نسخهٔ جدید آماده است» به صفحه‌های باز (این همان نواری است که بالای سایت می‌آید)
+      .then(() => self.clients.matchAll({ includeUncontrolled: true }))
+      .then((list) => {
+        list.forEach((c) => {
+          try {
+            c.postMessage({ type: "SW_UPDATED", version: VERSION });
+          } catch (err) { /* بی‌اهمیت */ }
+        });
+      })
   );
 });
 
 self.addEventListener("message", (e) => {
   if (e.data === "skip-waiting") self.skipWaiting();
-});
-
-/* تازه‌سازی پس‌زمینه: وقتی نسخهٔ جدیدی نصب شد، به کلاینت‌ها خبر می‌دهیم */
-self.addEventListener("installed", () => {
-  self.clients.matchAll({ includeUncontrolled: true }).then((list) => {
-    list.forEach((c) => c.postMessage({ type: "SW_UPDATED", version: VERSION }));
-  });
 });
 
 self.addEventListener("fetch", (e) => {
