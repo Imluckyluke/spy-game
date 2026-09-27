@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const APP_VER = 23; // با هر انتشار، با VERSION سرویس‌ورکر و نسخهٔ فوتر یکی باشد
+const APP_VER = 24; // با هر انتشار، با VERSION سرویس‌ورکر و نسخهٔ فوتر یکی باشد
 const FA = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 const fa = (n) => String(n).replace(/\d/g, (d) => FA[+d]);
 

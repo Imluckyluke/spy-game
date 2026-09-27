@@ -19,7 +19,6 @@ const N = {
   broker: "",
   seenAt: {},
   helloLoop: null,
-  kickedIds: [],
   lastState: 0,
   watchId: null,
   heartId: null,
@@ -149,7 +148,6 @@ function saveHostSnap() {
         endsAt: N.endsAt,
         timeUp: N.timeUp,
         role: N.role,
-        kickedIds: N.kickedIds || [],
         ts: Date.now(),
       })
     );
@@ -307,7 +305,6 @@ async function hostCreate() {
   N.spyStreak = {};
   N.lastWordIdx = -1;
   N.seenAt = {};
-  N.kickedIds = [];
   clearSession();
 
   let code = null;
@@ -392,11 +389,6 @@ function activeSeats() {
 }
 
 function addGuest(data) {
-  // اخراج‌شده‌ها برنمی‌گردند
-  if (N.kickedIds.indexOf(data.id) !== -1) {
-    pub(`${N.root}/to/${data.id}`, { t: "kicked", from: N.myId }, 1);
-    return;
-  }
   const existing = findIn(N.players, (x) => x.id === data.id);
   if (!existing && seatList().length >= N.max) {
     pub(`${N.root}/to/${data.id}`, { t: "full", from: N.myId });
@@ -438,7 +430,7 @@ function kickPlayer(id) {
   const ok = typeof window.confirm === "function" ? window.confirm(`«${p.name}» از روم حذف شود؟`) : true;
   if (!ok) return;
   N.players = N.players.filter((x) => x.id !== id);
-  if (N.kickedIds.indexOf(id) === -1) N.kickedIds.push(id);
+  // عمداً بلاک‌لیست نداریم: بازیکن حذف‌شده می‌تواند دوباره جوین شود
   pub(`${N.root}/to/${id}`, { t: "kicked", from: N.myId }, 1);
   saveHostSnap();
   syncHostState();
@@ -774,7 +766,6 @@ async function hostRecover() {
   N.endsAt = s.endsAt || 0;
   N.timeUp = !!s.timeUp;
   N.role = s.role || null;
-  N.kickedIds = s.kickedIds || [];
   N.myIndex = N.asPlayer ? 0 : -1;
   N.active = true;
   N.seenAt = {};
