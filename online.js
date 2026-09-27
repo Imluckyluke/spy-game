@@ -16,6 +16,7 @@ const N = {
   finishHello: null,
   waitingHost: false,
   hostId: null,
+  broker: "",
   lastState: 0,
   watchId: null,
   heartId: null,
@@ -189,6 +190,7 @@ function findIn(arr, fn) {
    بودن سرور میزبان و مهمان را هم بالا می‌برد. */
 
 const BROKER_KEY = "spy-broker";
+let lastBrokerUrl = "";
 
 function saveBroker(url) {
   try {
@@ -248,6 +250,7 @@ async function connectAny() {
           return;
         }
         done = true;
+        lastBrokerUrl = url;
         saveBroker(url);
         resolve(client);
       }).catch((e) => {
@@ -259,8 +262,17 @@ async function connectAny() {
   });
 }
 
-const pub = (topic, obj) => {
-  if (N.client) N.client.publish(topic, JSON.stringify(obj), { qos: 0, retain: false });
+function shortBroker(url) {
+  try {
+    const h = new URL(url).hostname;
+    return h.replace(/^www\./, "");
+  } catch (e) {
+    return url || "";
+  }
+}
+
+const pub = (topic, obj, qos) => {
+  if (N.client) N.client.publish(topic, JSON.stringify(obj), { qos: qos || 0, retain: false });
 };
 const pubRaw = (topic, str, retain) => {
   if (N.client) N.client.publish(topic, str, { qos: retain ? 1 : 0, retain: !!retain });
@@ -281,6 +293,7 @@ async function hostCreate() {
 
   N.client = client;
   N.isHost = true;
+  N.broker = lastBrokerUrl;
   N.myId = uid();
   N.myName = name;
   N.myIndex = N.asPlayer ? 0 : -1;
@@ -420,7 +433,7 @@ function sendWelcome(p, role) {
     payload.word = role.word;
     if (role.kind === "spy") payload.hint = role.hint;
   }
-  pub(`${N.root}/to/${p.id}`, payload);
+  pub(`${N.root}/to/${p.id}`, payload, 1);
 }
 
 function syncHostState() {
@@ -443,7 +456,7 @@ function syncHostState() {
     msg.spyIdx = N.spyIdx;
     msg.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.indexOf(p.i) !== -1 }));
   }
-  pub(`${N.root}/state`, msg);
+  pub(`${N.root}/state`, msg, 1);
   saveHostSnap();
   if (N.isHost) renderLobby();
 }
@@ -481,12 +494,13 @@ async function guestJoin(code, reuseId) {
 
   const sayHello = () => {
     if (N.client === client && N.connecting) {
-      pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName });
+      pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName }, 1);
     }
   };
 
   N.client = client;
   N.isHost = false;
+  N.broker = lastBrokerUrl;
   N.code = code;
   N.root = `jasoos/${code.toLowerCase()}`;
   N.myId = reuseId || uid();
@@ -505,7 +519,7 @@ async function guestJoin(code, reuseId) {
   client.on("connect", () => {
     if (N.client !== client) return;
     // اتصال دوباره (بعد از قطعی اینترنت): خودمان را دوباره معرفی می‌کنیم تا میزبان نقش را بفرستد
-    pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName });
+    pub(`${N.root}/join`, { t: "hello", from: N.myId, id: N.myId, name: N.myName }, 1);
   });
   client.subscribe(`${N.root}/state`);
   client.subscribe(`${N.root}/to/${N.myId}`);
@@ -530,7 +544,7 @@ async function guestJoin(code, reuseId) {
     N.phase = "idle";
     $n("joinBtn").disabled = false;
     window.showScreen("online");
-    setStatus("❌ کد روم پیدا نشد؛ مطمئن شو درست وارد کرده‌ای.");
+    setStatus("❌ کد روم پیدا نشد. اگه کد درسته، یعنی به سرور میزبان نرسیدیم؛ دوباره تلاش کن.");
     renderRejoin();
   }, 12000);
 }
@@ -683,6 +697,7 @@ async function hostRecover() {
 
   N.client = client;
   N.isHost = true;
+  N.broker = lastBrokerUrl;
   N.code = s.code;
   N.root = `jasoos/${s.code.toLowerCase()}`;
   N.myId = s.myId;
@@ -940,6 +955,9 @@ function renderLobby() {
       : "");
   const n = seatList().length;
   $n("lobbyCount").textContent = `${window.SPY_FA(n)} بازیکن حاضر — حداکثر ${window.SPY_FA(N.max)}`;
+  // سرور متصل را نشان بده تا اگر میزبان و مهمان روی سرورهای متفاوت‌اند معلوم شود
+  const bn = $n("brokerNote");
+  if (bn) bn.textContent = N.broker ? "server: " + shortBroker(N.broker) : "";
   if (N.isHost) {
     const btn = $n("netStartBtn");
     const ready = n >= MIN_PLAYERS;

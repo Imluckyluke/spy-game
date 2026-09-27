@@ -1,7 +1,7 @@
 /* سرویس‌ورکر بازی جاسوس — کارکرد آفلاین و نصب روی گوشی */
 /* نسخهٔ انتشار: هنگام انتشار نسخهٔ جدید، عدد VERSION و «نسخهٔ فوتر» در index.html را با هم بالا ببر */
 /* نکته: رویدادی به نام installed وجود ندارد؛ خبر نسخهٔ جدید در activate فرستاده می‌شود */
-const VERSION = "v19";
+const VERSION = "v20";
 const CACHE = `jasoos-${VERSION}`;
 
 const SHELL = [
