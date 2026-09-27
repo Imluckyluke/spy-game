@@ -261,7 +261,9 @@ function onHostMessage(topic, msg) {
 
 function seatList() {
   const list = N.players.slice();
-  if (N.asPlayer) list.unshift({ i: 0, id: N.myId, name: N.myName, host: true });
+  // فقط خود میزبانِ بازیکن، صندلی ۰ را اضافه می‌کند؛ مهمان‌ها asPlayer پیش‌فرض
+  // داشتند و برای خودشان صندلی خیالی ۱ 👑 می‌ساختند (تکراری + شمارش اشتباه).
+  if (N.isHost && N.asPlayer) list.unshift({ i: 0, id: N.myId, name: N.myName, host: true });
   return list;
 }
 
