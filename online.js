@@ -62,8 +62,8 @@ const esc = (s) =>
 const brokerList = () => {
   const custom = ($n("brokerInput") && $n("brokerInput").value.trim()) || "";
   const list = [];
-  // حذف تکراری‌ها (مقدار پیش‌فرض کادر همان سرور اول است وگرنه دو بار شمرده می‌شد)
-  [custom].concat(NET_BROKERS).forEach((u) => {
+  // اول آخرین سرور سالم، بعد انتخاب دستی، بعد پیش‌فرض‌ها؛ بدون تکرار
+  [readBroker(), custom].concat(NET_BROKERS).forEach((u) => {
     if (u && list.indexOf(u) === -1) list.push(u);
   });
   return list;
@@ -182,9 +182,29 @@ function findIn(arr, fn) {
   return undefined;
 }
 
-/* ---------------- اتصال ---------------- */
+/* ---------------- اتصال ----------------
+   به همهٔ سرورها هم‌زمان وصل می‌شویم و هرکدام زودتر جواب داد همان را نگه
+   می‌داریم (قبلاً تک‌تک با ۱۰ ثانیه مکث امتحان می‌شد و کند بود). سروری که
+   سالم باشد ذخیره می‌شود تا دفعهٔ بعد اول همان امتحان شود — این شانس یکی
+   بودن سرور میزبان و مهمان را هم بالا می‌برد. */
 
-function mqttConnect(url) {
+const BROKER_KEY = "spy-broker";
+
+function saveBroker(url) {
+  try {
+    if (url) localStorage.setItem(BROKER_KEY, url);
+  } catch (e) { /* حالت خصوصی */ }
+}
+
+function readBroker() {
+  try {
+    return localStorage.getItem(BROKER_KEY) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function mqttConnect(url, ms) {
   return new Promise((resolve, reject) => {
     let settled = false;
     let client;
@@ -199,7 +219,7 @@ function mqttConnect(url) {
     } catch (e) {
       return reject(e);
     }
-    const to = setTimeout(() => finish(new Error("timeout")), 10000);
+    const to = setTimeout(() => finish(new Error("timeout")), ms || 6000);
     function finish(err, val) {
       if (settled) return;
       settled = true;
@@ -216,16 +236,27 @@ function mqttConnect(url) {
 
 async function connectAny() {
   const list = brokerList();
-  let lastErr = null;
-  for (let i = 0; i < list.length; i++) {
-    setStatus(`در حال اتصال به سرور ${i + 1} از ${list.length}…`);
-    try {
-      return await mqttConnect(list[i]);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr || new Error("اتصال برقرار نشد");
+  setStatus(`در حال اتصال به سرور…`);
+  return new Promise((resolve, reject) => {
+    let pending = list.length;
+    let done = false;
+    let lastErr = null;
+    list.forEach((url) => {
+      mqttConnect(url).then((client) => {
+        if (done) {
+          try { client.end(true); } catch (e) { /* اضافی */ }
+          return;
+        }
+        done = true;
+        saveBroker(url);
+        resolve(client);
+      }).catch((e) => {
+        lastErr = e;
+        pending -= 1;
+        if (pending <= 0 && !done) reject(lastErr || new Error("اتصال برقرار نشد"));
+      });
+    });
+  });
 }
 
 const pub = (topic, obj) => {
@@ -501,7 +532,7 @@ async function guestJoin(code, reuseId) {
     window.showScreen("online");
     setStatus("❌ کد روم پیدا نشد؛ مطمئن شو درست وارد کرده‌ای.");
     renderRejoin();
-  }, 9000);
+  }, 12000);
 }
 
 // تماس میزبان برقرار شد: پایان حالت «در حال اتصال» و ورود به لابی/بازی
