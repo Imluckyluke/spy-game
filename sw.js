@@ -1,5 +1,5 @@
 /* سرویس‌ورکر بازی جاسوس — کارکرد آفلاین و نصب روی گوشی */
-const VERSION = "v16";
+const VERSION = "v17";
 const CACHE = `jasoos-${VERSION}`;
 
 const SHELL = [

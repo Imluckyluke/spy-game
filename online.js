@@ -14,6 +14,11 @@ const N = {
   active: false,
   connecting: false,
   finishHello: null,
+  waitingHost: false,
+  hostId: null,
+  lastState: 0,
+  watchId: null,
+  heartId: null,
   client: null,
   isHost: false,
   code: "",
@@ -109,6 +114,64 @@ function renderRejoin() {
   rejoinSession = !N.active && !N.connecting ? readSession() : null;
   btn.hidden = !rejoinSession;
   if (rejoinSession) btn.textContent = `🔄 بازگشت به روم ${rejoinSession.code}`;
+}
+
+/* ---------------- اسنپ‌شات میزبان (بازیابی روم بعد از رفرش) ---------------- */
+
+const HOST_KEY = "spy-host";
+
+function saveHostSnap() {
+  try {
+    if (!N.isHost || !N.code) return;
+    localStorage.setItem(
+      HOST_KEY,
+      JSON.stringify({
+        code: N.code,
+        myId: N.myId,
+        myName: N.myName,
+        asPlayer: N.asPlayer,
+        max: N.max,
+        spies: N.spies,
+        seconds: N.seconds,
+        players: N.players,
+        word: N.word,
+        spyIdx: N.spyIdx,
+        spyStreak: N.spyStreak,
+        lastWordIdx: N.lastWordIdx,
+        phase: N.phase,
+        endsAt: N.endsAt,
+        timeUp: N.timeUp,
+        role: N.role,
+        ts: Date.now(),
+      })
+    );
+  } catch (e) { /* حالت خصوصی */ }
+}
+
+function readHostSnap() {
+  try {
+    const raw = localStorage.getItem(HOST_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !s.code || !s.myId || Date.now() - (s.ts || 0) > SESSION_TTL) return null;
+    return s;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearHostSnap() {
+  try {
+    localStorage.removeItem(HOST_KEY);
+  } catch (e) { /* حالت خصوصی */ }
+}
+
+function renderRecover() {
+  const btn = $n("recoverBtn");
+  if (!btn) return;
+  const s = !N.active ? readHostSnap() : null;
+  btn.hidden = !s;
+  if (s) btn.textContent = `🔄 بازگشت به روم خودم (${s.code})`;
 }
 
 function findIn(arr, fn) {
@@ -218,6 +281,8 @@ async function hostCreate() {
   client.subscribe(`${N.root}/#`);
   openLobby("میزبان");
   setStatus("");
+  renderRecover();
+  startHeartbeat();
   syncHostState();
 }
 
@@ -227,7 +292,8 @@ function claimCode(client, root, myId) {
     let taken = false;
     const onMsg = (t, msg) => {
       const payload = msg && msg.toString ? msg.toString() : "";
-      if (payload && payload !== "here:" + myId) taken = true;
+      // فقط نشانهٔ زنده بودن میزبان دیگر مهم است؛ پیام closed یعنی روم بسته‌شده و کد آزاد است
+      if (payload.indexOf("here:") === 0 && payload !== "here:" + myId) taken = true;
     };
     client.on("message", onMsg);
     client.subscribe(topic);
@@ -344,6 +410,7 @@ function syncHostState() {
     msg.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.indexOf(p.i) !== -1 }));
   }
   pub(`${N.root}/state`, msg);
+  saveHostSnap();
   if (N.isHost) renderLobby();
 }
 
@@ -443,9 +510,11 @@ function guestContacted() {
   if (N.connecting) {
     N.connecting = false;
     N.active = true;
+    N.lastState = Date.now();
     $n("joinBtn").disabled = false;
     setStatus("");
     saveSession();
+    startWatch();
     openLobby("مهمان");
   }
 }
@@ -454,7 +523,13 @@ function onGuestMessage(topic, msg) {
   const raw = msg.toString();
 
   if (topic === `${N.root}/host`) {
-    if (raw.indexOf("bye:") === 0) hostGone();
+    // بستن عمدی روم توسط میزبان: مرگ فوری. خداحافظی (bye) ممکن است فقط
+    // رفرش کوتاه باشد پس فقط وارد انتظار می‌شویم؛ پیام bye مهمان‌ها نادیده.
+    if (raw.indexOf("closed:") === 0) {
+      realHostGone();
+      return;
+    }
+    if (N.hostId && raw === "bye:" + N.hostId) setWaiting(true);
     return;
   }
 
@@ -485,6 +560,9 @@ function onGuestMessage(topic, msg) {
 
   if (data.t === "welcome" && topic === `${N.root}/to/${N.myId}`) {
     guestContacted();
+    if (data.from) N.hostId = data.from;
+    N.lastState = Date.now();
+    setWaiting(false);
     N.myIndex = data.you;
     N.max = data.max || N.max;
     N.spies = data.spies || N.spies;
@@ -500,6 +578,9 @@ function onGuestMessage(topic, msg) {
   }
 
   if (data.t === "state" && topic === `${N.root}/state`) {
+    if (data.from) N.hostId = data.from;
+    N.lastState = Date.now();
+    setWaiting(false);
     N.players = data.players || [];
     N.max = data.max;
     N.spies = data.spies;
@@ -533,16 +614,95 @@ function onGuestMessage(topic, msg) {
   }
 }
 
-function hostGone() {
+function realHostGone() {
   stopNetTick();
+  stopWatch();
+  setWaiting(false);
   window.showScreen("online");
   setStatus("❌ میزبان روم از دسترس خارج شد.");
   N.active = false;
   N.connecting = false;
   N.client = null;
+  N.hostId = null;
+  N.lastState = 0;
   $n("joinBtn").disabled = false;
   clearSession();
   renderRejoin();
+}
+
+/* ---------------- بازیابی روم میزبان (بعد از رفرش اتفاقی) ----------------
+   با همان شناسه برمی‌گردد پس کد برای خودش آزاد است؛ بازیکن‌ها، کلمه،
+   جاسوس‌ها و تایمر (زمان مطلق) از اسنپ‌شات برمی‌گردد و با اولین همگام‌سازی
+   همهٔ مهمان‌ها سر جایشان می‌نشینند. */
+
+async function hostRecover() {
+  const s = readHostSnap();
+  if (!s || N.active || N.connecting) return;
+  setStatus("در حال بازیابی روم…");
+  let client;
+  try {
+    client = await connectAny();
+  } catch (e) {
+    setStatus("❌ اتصال به سرور ممکن نشد.");
+    return;
+  }
+
+  N.client = client;
+  N.isHost = true;
+  N.code = s.code;
+  N.root = `jasoos/${s.code.toLowerCase()}`;
+  N.myId = s.myId;
+  N.myName = s.myName || "میزبان";
+  N.asPlayer = typeof s.asPlayer === "boolean" ? s.asPlayer : true;
+  N.max = s.max || 6;
+  N.spies = s.spies || 1;
+  N.seconds = s.seconds || 120;
+  N.players = s.players || [];
+  N.word = s.word || null;
+  N.spyIdx = s.spyIdx || [];
+  N.spyStreak = s.spyStreak || {};
+  N.lastWordIdx = typeof s.lastWordIdx === "number" ? s.lastWordIdx : -1;
+  N.phase = s.phase || "lobby";
+  N.endsAt = s.endsAt || 0;
+  N.timeUp = !!s.timeUp;
+  N.role = s.role || null;
+  N.myIndex = N.asPlayer ? 0 : -1;
+  N.active = true;
+  setWaiting(false);
+
+  const free = await claimCode(client, N.root, N.myId);
+  if (!free) {
+    try { client.end(true); } catch (e) { /* بی‌اهمیت */ }
+    N.client = null;
+    N.active = false;
+    N.isHost = false;
+    setStatus("❌ کد روم گرفته شده؛ یک روم تازه بسازید.");
+    return;
+  }
+
+  client.on("message", onHostMessage);
+  client.on("connect", () => {
+    pubRaw(`${N.root}/host`, "here:" + N.myId, true);
+    syncHostState();
+  });
+  client.subscribe(`${N.root}/#`);
+  setStatus("");
+  renderRecover();
+  startHeartbeat();
+  if (N.phase === "play") {
+    openNetPlay();
+    renderNetPlay();
+  } else if (N.phase === "role") {
+    if (N.asPlayer && N.role) renderNetRole();
+    else openNetPlay();
+  } else if (N.phase === "reveal" && N.word) {
+    N.roles = seatList().map((p) => ({ i: p.i, name: p.name, host: !!p.host, spy: N.spyIdx.indexOf(p.i) !== -1 }));
+    renderNetReveal();
+  } else {
+    N.phase = "lobby";
+    openLobby("میزبان");
+  }
+  syncHostState();
 }
 
 /* ---------------- شروع و افشا (میزبان) ---------------- */
@@ -625,13 +785,61 @@ function netAgain() {
   openLobby("میزبان");
 }
 
+/* ---------------- ضربان میزبان و نگهبان مهمان ----------------
+   میزبان هر ۱۰ ثانیه وضعیت را همگام می‌کند تا مهمان‌ها بفهمند روم زنده است؛
+   اگر خبری از میزبان نباشد، مهمان اول وارد «انتظار» می‌شود و فقط بعد از
+   سکوت طولانی روم را مرده حساب می‌کند (فرصت برای رفرش و برگشتن میزبان). */
+
+const HEART_MS = 10000;
+const GRACE_MS = 25000;
+const DEATH_MS = 70000;
+
+function startHeartbeat() {
+  stopHeartbeat();
+  N.heartId = setInterval(() => {
+    if (N.isHost && N.client && N.phase !== "idle") syncHostState();
+  }, HEART_MS);
+}
+
+function stopHeartbeat() {
+  if (N.heartId) clearInterval(N.heartId);
+  N.heartId = null;
+}
+
+function startWatch() {
+  stopWatch();
+  N.watchId = setInterval(watchTick, 5000);
+}
+
+function stopWatch() {
+  if (N.watchId) clearInterval(N.watchId);
+  N.watchId = null;
+}
+
+function watchTick() {
+  if (!N.active || N.isHost || N.connecting || N.phase === "idle") return;
+  const silent = Date.now() - (N.lastState || 0);
+  if (silent > DEATH_MS) realHostGone();
+  else if (silent > GRACE_MS || N.waitingHost) setWaiting(true);
+}
+
+function setWaiting(on) {
+  N.waitingHost = !!on;
+  const bar = $n("waitBar");
+  if (bar) bar.hidden = !on;
+}
+
 /* ---------------- ترک روم ---------------- */
 
 function netLeave() {
   stopNetTick();
+  stopHeartbeat();
+  stopWatch();
+  setWaiting(false);
   if (N.client) {
     try {
-      if (N.isHost) pubRaw(`${N.root}/host`, "bye:" + N.myId, false);
+      // بستن واقعی روم (مهمان‌ها فوراً می‌فهمند) + پاک کردن نشانهٔ روم
+      if (N.isHost) pubRaw(`${N.root}/host`, "closed:" + N.myId, false);
       N.client.publish(`${N.root}/host`, "", { qos: 1, retain: true });
       N.client.end(true);
     } catch (e) { /* اتصال از قبل بسته شده */ }
@@ -645,10 +853,14 @@ function netLeave() {
   N.word = null;
   N.phase = "idle";
   N.myIndex = -1;
+  N.hostId = null;
+  N.lastState = 0;
   setStatus("");
   clearSession();
+  clearHostSnap();
   window.showScreen("online");
   renderRejoin();
+  renderRecover();
 }
 
 /* ---------------- نمایش ---------------- */
@@ -928,7 +1140,9 @@ function initOnline() {
     switchPane(true);
     guestJoin(s.code, s.myId);
   });
+  $n("recoverBtn").addEventListener("click", hostRecover);
   renderRejoin();
+  renderRecover();
   $n("codeInput").addEventListener("input", (e) => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
   });

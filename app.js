@@ -143,6 +143,7 @@ function show(name) {
   const el = screens[name];
   if (el) el.classList.add("is-active");
   window.scrollTo({ top: 0 });
+  if (name === "home") renderResume();
 }
 
 const netOn = () => window.NET && window.NET.isActive();
@@ -303,6 +304,55 @@ function loadSettings() {
   } catch (e) { /* تنظیمات خراب، پیش‌فرض */ }
 }
 
+/* ---------------- ادامه بازی نیمه‌تمام (بعد از رفرش اتفاقی) ---------------- */
+
+const OFF_KEY = "spy-offline";
+
+function saveOff() {
+  try {
+    if (!state.word) return;
+    localStorage.setItem(
+      OFF_KEY,
+      JSON.stringify({
+        players: state.players,
+        spies: state.spies,
+        seconds: state.seconds,
+        word: state.word,
+        lastWordIdx: state.lastWordIdx,
+        spySet: state.spySet,
+        spyStreak: state.spyStreak,
+        seen: state.seen,
+        turn: state.turn,
+        phase: state.timerId ? "play" : "turn",
+        endsAt: state.timerId ? Date.now() + state.timeLeft * 1000 : 0,
+      })
+    );
+  } catch (e) { /* حالت خصوصی */ }
+}
+
+function readOff() {
+  try {
+    const raw = localStorage.getItem(OFF_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !s.word || !s.word.w || !(s.players >= 3)) return null;
+    return s;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearOff() {
+  try {
+    localStorage.removeItem(OFF_KEY);
+  } catch (e) { /* حالت خصوصی */ }
+}
+
+function renderResume() {
+  const btn = $("resumeBtn");
+  if (btn) btn.hidden = !readOff();
+}
+
 /* ---------------- شروع دور ---------------- */
 
 function newRound() {
@@ -319,6 +369,7 @@ function newRound() {
   bumpStreak(state.spyStreak, seats, state.spySet);
   state.seen = [];
   state.turn = 0;
+  saveOff();
   showTurn();
 }
 
@@ -378,6 +429,7 @@ $("peekBtn").addEventListener("click", () => {
 $("hideBtn").addEventListener("click", () => {
   state.seen.push(state.turn);
   state.turn += 1;
+  saveOff();
   if (state.turn < state.players) showTurn();
   else startTalk();
   buzz(15);
@@ -394,19 +446,28 @@ $("backSetupBtn").addEventListener("click", () => {
 const RING = 2 * Math.PI * 52;
 
 function startTalk() {
-  state.timeLeft = state.seconds;
+  beginTalk(state.seconds);
+}
+
+function resumeTalk(left) {
+  beginTalk(Math.max(0, Math.min(left, state.seconds)));
+}
+
+function beginTalk(left) {
+  state.timeLeft = left;
   state.timeUp = false;
-  $("timerNum").textContent = fa(state.seconds);
+  $("timerNum").textContent = fa(left);
   $("playNote").textContent = "";
-  $("minus30Btn").disabled = false;
+  $("minus30Btn").disabled = left <= 0;
   const ring = $("ringFg");
   ring.style.strokeDasharray = RING;
-  ring.style.strokeDashoffset = 0;
+  ring.style.strokeDashoffset = RING * (1 - left / state.seconds);
   $("screen-play").querySelector(".timer-wrap").classList.remove("hurry");
   renderSeats($("seatsPlay"), -1);
   show("play");
   requestWake();
   stopTimer();
+  saveOff();
   state.timerId = setInterval(tick, 1000);
 }
 
@@ -428,6 +489,7 @@ function tick() {
   $("ringFg").style.strokeDashoffset = RING * (1 - state.timeLeft / state.seconds);
   $("screen-play").querySelector(".timer-wrap").classList.toggle("hurry", state.timeLeft <= 10);
   if (state.timeLeft === 10) buzz([80, 60, 80]);
+  saveOff();
 }
 
 function stopTimer() {
@@ -447,6 +509,7 @@ function addTime(delta) {
   }
   $("timerNum").textContent = fa(state.timeLeft);
   $("ringFg").style.strokeDashoffset = RING * (1 - state.timeLeft / state.seconds);
+  saveOff();
   buzz(10);
 }
 
@@ -474,9 +537,33 @@ function reveal() {
   $("againBtn").hidden = false;
   $("againBtn").textContent = "یک دور دیگر";
   $("menuBtn").textContent = "تغییر تنظیمات";
+  clearOff();
   show("reveal");
   buzz([40, 60, 120]);
 }
+
+$("resumeBtn").addEventListener("click", () => {
+  const s = readOff();
+  if (!s) return;
+  stopTimer();
+  state.players = s.players;
+  state.spies = s.spies;
+  state.seconds = s.seconds;
+  state.word = s.word;
+  state.lastWordIdx = typeof s.lastWordIdx === "number" ? s.lastWordIdx : -1;
+  state.spySet = s.spySet || [];
+  state.spyStreak = s.spyStreak || {};
+  state.seen = s.seen || [];
+  state.turn = s.turn || 0;
+  if (state.turn >= state.players) state.turn = 0;
+  initSetupControls();
+  if (s.phase === "play" && s.endsAt) {
+    resumeTalk(Math.round((s.endsAt - Date.now()) / 1000));
+  } else {
+    showTurn();
+  }
+  buzz(20);
+});
 
 $("againBtn").addEventListener("click", () => {
   if (netOn()) return window.NET.again();
@@ -513,6 +600,7 @@ document.addEventListener("visibilitychange", () => {
 
 loadSettings();
 initSetupControls();
+renderResume();
 $("wordCount").textContent = `${fa(WORDS.length)} کلمهٔ فارسی`;
 
 window.SPY_FA = fa;

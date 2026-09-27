@@ -32,6 +32,7 @@
 
       <button type="button" class="btn primary big" id="toOfflineBtn">بازی حضوری — یک گوشی</button>
       <button type="button" class="btn net-alt big" id="toOnlineBtn">بازی آنلاین — هرکس با گوشی خودش</button>
+      <button type="button" class="btn ghost" id="resumeBtn" hidden>▶️ ادامه بازی نیمه‌تمام</button>
 
       <p class="js-dead-note">⏳ در حال بارگذاری بازی… اگه این پیام موند، مرورگرت قدیمیه یا جاوااسکریپت خاموشه — با کروم یا سافاری جدید امتحان کن.</p>
       <noscript><p class="js-dead-note always">برای این بازی جاوااسکریپت لازمه؛ لطفاً فعالش کن.</p></noscript>
@@ -191,6 +192,7 @@
       <div id="createPane" role="tabpanel" hidden>
         <p class="sub no-bottom">میزبان می‌شوی: تعداد جاسوس و زمان را انتخاب کن و کد روم را برای بقیه بفرست.</p>
         <button type="button" class="btn primary big" id="createBtn">ساخت روم و گرفتن کد</button>
+        <button type="button" class="btn ghost" id="recoverBtn" hidden>🔄 بازگشت به روم خودم</button>
       </div>
 
       <details class="adv">
@@ -342,6 +344,8 @@
   </section>
 
 </main>
+
+<div class="wait-bar" id="waitBar" hidden>⚠️ اتصال به میزبان قطع شد؛ منتظر برگشتن میزبان…</div>
 
 <footer class="site-foot">بازی جاسوس • بدون نصب، فقط در مرورگر • <span id="wordCount"></span><br />ساختهٔ <a href="https://t.me/imluckyluke" target="_blank" rel="noopener"><bdi>@imluckyluke</bdi></a> 🕵️</footer>
 
